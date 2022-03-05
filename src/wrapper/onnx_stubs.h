@@ -15,6 +15,7 @@ char *status_get_error_message(OrtStatus *);
 OrtStatus* session_get_input_count(OrtSession *, size_t *);
 OrtStatus* session_get_output_count(OrtSession *, size_t *);
 OrtStatus* session_run_1_1(OrtSession *, char *, char *, OrtValue*, OrtValue **);
+OrtStatus* session_run(OrtSession *, char **, int, char **, int, OrtValue **, OrtValue **);
 OrtStatus* value_is_tensor(OrtValue *, int *);
 OrtStatus* value_get_tensor_type_and_shape(OrtValue *, OrtTensorTypeAndShapeInfo **);
 OrtStatus* value_tensor_memcpy_of_ptr(OrtValue *, void *, size_t);

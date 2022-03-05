@@ -221,6 +221,22 @@ OrtStatus* session_run_1_1(OrtSession *s, char *iname, char *oname, OrtValue* i,
   return g_ort->Run(s, NULL, input_names, (const OrtValue* const*)&i, 1, output_names, 1, o);
 }
 
+OrtStatus* session_run(OrtSession *s, char **inames, int iname_len, char **onames, int oname_len, OrtValue **is, OrtValue **os) {
+  const OrtApi *g_ort = current_ort();
+  for (int i = 0; i < oname_len; ++i)
+    os[i] = NULL;
+  OrtStatus *status = g_ort->Run(
+                                 s,
+                                 NULL,
+                                 (const char *const *)inames,
+                                 (const OrtValue *const *)is,
+                                 iname_len,
+                                 (const char *const *)onames,
+                                 oname_len,
+                                 os);
+  return status;
+}
+
 OrtStatus* value_tensor_memcpy_to_ptr(OrtValue *v, void *data, size_t data_len) {
   void* tensor_data;
   OrtStatus *status = current_ort()->GetTensorMutableData(v, &tensor_data);

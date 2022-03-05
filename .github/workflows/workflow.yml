@@ -39,3 +39,5 @@ jobs:
       - run: LIBONNXRUNTIME=$PWD/onnxruntime-linux-x64-1.10.0 opam exec -- dune build
 
       - run: LIBONNXRUNTIME=$PWD/onnxruntime-linux-x64-1.10.0 opam exec -- dune runtest
+
+      - run: LIBONNXRUNTIME=$PWD/onnxruntime-linux-x64-1.10.0 opam exec -- dune exec bin/basic.exe

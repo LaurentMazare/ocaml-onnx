@@ -56,3 +56,22 @@ let%expect_test _ =
   Stdio.printf "%b %d %s\n" (W.Value.is_tensor tensor) dim_count dims;
   [%expect {|
     true 2 42,1337 |}]
+
+let%expect_test _ =
+  let env = W.Env.create "foo" in
+  let session_options = W.SessionOptions.create () in
+  let session = W.Session.create env session_options ~model_path:"add_one.onnx" in
+  let s =
+    W.SessionWithArgs.create session ~input_names:[ "input" ] ~output_names:[ "output" ]
+  in
+  let ba = Bigarray.Array1.create Float32 C_layout 1 in
+  ba.{0} <- 2.71828182846;
+  let input_tensor = Bigarray.genarray_of_array1 ba |> W.Value.of_bigarray in
+  match W.SessionWithArgs.run s [| input_tensor |] with
+  | [| tensor |] ->
+    let ba = W.Value.to_bigarray tensor Float32 |> Bigarray.array1_of_genarray in
+    Stdio.printf "> %d %s\n%!" (Bigarray.Array1.dim ba) (Float.to_string ba.{0});
+    [%expect {|
+    > 1 3.7182817459106445 |}]
+  | array ->
+    Printf.failwithf "unexpected number of tensors from run %d" (Array.length array) ()

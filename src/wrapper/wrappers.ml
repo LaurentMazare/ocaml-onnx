@@ -1,5 +1,6 @@
 open! Base
 open! Import
+module CArray = Ctypes.CArray
 
 let add_compact = false
 
@@ -17,14 +18,14 @@ module type S = sig
   val release : t -> unit
 end
 
-let size_arr1 = Ctypes.CArray.make Ctypes.size_t 1
-let int_arr1 = Ctypes.CArray.make Ctypes.int 1
+let size_arr1 = CArray.make Ctypes.size_t 1
+let int_arr1 = CArray.make Ctypes.int 1
 
 let create (type a) (module M : S with type t = a Ctypes.ptr) create_fn =
-  let arr = Ctypes.CArray.make M.t 1 in
+  let arr = CArray.make M.t 1 in
   if add_compact then Caml.Gc.compact ();
-  create_fn (Ctypes.CArray.start arr) |> check_and_release_status;
-  let t = Ctypes.CArray.get arr 0 in
+  create_fn (CArray.start arr) |> check_and_release_status;
+  let t = CArray.get arr 0 in
   if Ctypes.is_null t then failwith "function returned null despite ok status";
   Caml.Gc.finalise M.release t;
   t
@@ -45,30 +46,29 @@ module TensorTypeAndShapeInfo = struct
   type t = W.TensorTypeAndShapeInfo.t
 
   let element_type t =
-    W.TensorTypeAndShapeInfo.element_type t (Ctypes.CArray.start int_arr1)
+    W.TensorTypeAndShapeInfo.element_type t (CArray.start int_arr1)
     |> check_and_release_status;
-    Ctypes.CArray.get int_arr1 0 |> Element_type.of_c_int
+    CArray.get int_arr1 0 |> Element_type.of_c_int
 
   let dimensions_count t =
-    W.TensorTypeAndShapeInfo.dimensions_count t (Ctypes.CArray.start size_arr1)
+    W.TensorTypeAndShapeInfo.dimensions_count t (CArray.start size_arr1)
     |> check_and_release_status;
-    Ctypes.CArray.get size_arr1 0 |> Unsigned.Size_t.to_int
+    CArray.get size_arr1 0 |> Unsigned.Size_t.to_int
 
   let element_count t =
-    W.TensorTypeAndShapeInfo.element_count t (Ctypes.CArray.start size_arr1)
+    W.TensorTypeAndShapeInfo.element_count t (CArray.start size_arr1)
     |> check_and_release_status;
-    Ctypes.CArray.get size_arr1 0 |> Unsigned.Size_t.to_int
+    CArray.get size_arr1 0 |> Unsigned.Size_t.to_int
 
   let dimensions t =
     let dimensions_count = dimensions_count t in
-    let dim_arr = Ctypes.CArray.make Ctypes.int64_t dimensions_count in
+    let dim_arr = CArray.make Ctypes.int64_t dimensions_count in
     W.TensorTypeAndShapeInfo.dimensions
       t
-      (Ctypes.CArray.start dim_arr)
+      (CArray.start dim_arr)
       (Unsigned.Size_t.of_int dimensions_count)
     |> check_and_release_status;
-    Array.init dimensions_count ~f:(fun i ->
-        Ctypes.CArray.get dim_arr i |> Int64.to_int_exn)
+    Array.init dimensions_count ~f:(fun i -> CArray.get dim_arr i |> Int64.to_int_exn)
 end
 
 module Value = struct
@@ -77,8 +77,8 @@ module Value = struct
   let create_tensor element_type ~shape =
     let shape_len = Array.length shape in
     let shape =
-      let ca = Ctypes.CArray.make Ctypes.int64_t shape_len in
-      Array.iteri shape ~f:(fun i v -> Ctypes.CArray.set ca i (Int64.of_int v));
+      let ca = CArray.make Ctypes.int64_t shape_len in
+      Array.iteri shape ~f:(fun i v -> CArray.set ca i (Int64.of_int v));
       ca
     in
     let t =
@@ -87,7 +87,7 @@ module Value = struct
         (module W.Value)
         (fun ptr ->
           W.Value.create_tensor
-            (Ctypes.CArray.start shape)
+            (CArray.start shape)
             shape_len
             (Element_type.to_c_int element_type)
             ptr)
@@ -96,8 +96,8 @@ module Value = struct
     t
 
   let is_tensor t =
-    W.Value.is_tensor t (Ctypes.CArray.start int_arr1) |> check_and_release_status;
-    Ctypes.CArray.get int_arr1 0 <> 0
+    W.Value.is_tensor t (CArray.start int_arr1) |> check_and_release_status;
+    CArray.get int_arr1 0 <> 0
 
   let tensor_type_and_shape t =
     create
@@ -186,9 +186,82 @@ module Session = struct
     t
 
   let count t ~count_fn =
-    count_fn t (Ctypes.CArray.start size_arr1) |> check_and_release_status;
-    Ctypes.CArray.get size_arr1 0 |> Unsigned.Size_t.to_int
+    count_fn t (CArray.start size_arr1) |> check_and_release_status;
+    CArray.get size_arr1 0 |> Unsigned.Size_t.to_int
 
   let input_count t = count t ~count_fn:W.Session.input_count
   let output_count t = count t ~count_fn:W.Session.output_count
+end
+
+module SessionWithArgs = struct
+  (* TODO: Use some GADT to provide a nicer api without the need for list for small
+     tuples? *)
+  type t =
+    { session : Session.t
+    ; input_names : char CArray.t list
+    ; output_names : char CArray.t list
+    ; input_names_arr : char Ctypes.ptr CArray.t
+    ; output_names_arr : char Ctypes.ptr CArray.t
+    ; input_values : Value.t CArray.t
+    ; output_values : Value.t CArray.t
+    }
+
+  let create session ~input_names ~output_names =
+    let to_list names =
+      List.map names ~f:(fun n -> String.to_list n |> CArray.of_list Ctypes.char)
+    in
+    let input_names = to_list input_names in
+    let output_names = to_list output_names in
+    let input_names_arr =
+      List.map input_names ~f:CArray.start |> CArray.of_list Ctypes.(ptr char)
+    in
+    let output_names_arr =
+      List.map output_names ~f:CArray.start |> CArray.of_list Ctypes.(ptr char)
+    in
+    { session
+    ; input_names
+    ; output_names
+    ; input_names_arr
+    ; output_names_arr
+    ; input_values = CArray.make W.Value.t (CArray.length input_names_arr)
+    ; output_values = CArray.make W.Value.t (CArray.length output_names_arr)
+    }
+
+  let run t input_values =
+    let input_names_len = CArray.length t.input_names_arr in
+    let output_names_len = CArray.length t.output_names_arr in
+    if input_names_len <> Array.length input_values
+    then
+      Printf.failwithf
+        "input len mismatch %d <> %d"
+        (Array.length input_values)
+        input_names_len
+        ();
+    Array.iteri input_values ~f:(fun i v -> CArray.set t.input_values i v);
+    for i = 0 to CArray.length t.output_values - 1 do
+      CArray.set t.output_values i (Ctypes.null |> Ctypes.from_voidp W.Value.struct_)
+    done;
+    let status =
+      if add_compact then Caml.Gc.compact ();
+      W.Session.run
+        t.session
+        (CArray.start t.input_names_arr)
+        input_names_len
+        (CArray.start t.output_names_arr)
+        output_names_len
+        (CArray.start t.input_values)
+        (CArray.start t.output_values)
+    in
+    for i = 0 to CArray.length t.output_values - 1 do
+      CArray.set t.input_values i (Ctypes.null |> Ctypes.from_voidp W.Value.struct_)
+    done;
+    check_and_release_status status;
+    keep_alive t;
+    Array.init (CArray.length t.output_values) ~f:(fun i ->
+        let output_value = CArray.get t.output_values i in
+        CArray.set t.output_values i (Ctypes.null |> Ctypes.from_voidp W.Value.struct_);
+        if Ctypes.is_null output_value
+        then failwith "run function returned null despite ok status";
+        Caml.Gc.finalise W.Value.release output_value;
+        output_value)
 end

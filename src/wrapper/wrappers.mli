@@ -51,3 +51,10 @@ module Session : sig
   val output_count : t -> int
   val run_1_1 : t -> Value.t -> input_name:string -> output_name:string -> Value.t
 end
+
+module SessionWithArgs : sig
+  type t
+
+  val create : Session.t -> input_names:string list -> output_names:string list -> t
+  val run : t -> Value.t array -> Value.t array
+end

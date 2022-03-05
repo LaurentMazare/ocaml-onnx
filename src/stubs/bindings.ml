@@ -135,6 +135,18 @@ module C (F : Cstubs.FOREIGN) = struct
         "session_run_1_1"
         (t @-> string @-> string @-> Value.t @-> ptr Value.t @-> returning Status.t)
 
+    let run =
+      foreign
+        "session_run"
+        (t
+        @-> ptr (ptr char)
+        @-> int
+        @-> ptr (ptr char)
+        @-> int
+        @-> ptr Value.t
+        @-> ptr Value.t
+        @-> returning Status.t)
+
     let release = foreign "release_session" (t @-> returning void)
   end
 end
