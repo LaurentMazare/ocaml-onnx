@@ -1,0 +1,41 @@
+name: Main workflow
+
+on:
+  - pull_request
+  - push
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        ocaml-version:
+          - 4.12.0
+          - 4.11.0
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: avsm/setup-ocaml@v2
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+
+      - run: opam pin add onnx.dev . --no-action
+
+      - run: opam depext onnx --yes --with-doc --with-test
+
+      - run: opam install . --deps-only --with-doc --with-test
+
+      - run: wget https://github.com/microsoft/onnxruntime/releases/download/v1.10.0/onnxruntime-linux-x64-1.10.0.tgz
+
+      - run: tar -xzvf onnxruntime-linux-x64-1.10.0.tgz
+
+      - run: LIBONNXRUNTIME=$PWD/onnxruntime-linux-x64-1.10.0 opam exec -- dune build
+
+      - run: LIBONNXRUNTIME=$PWD/onnxruntime-linux-x64-1.10.0 opam exec -- dune runtest
