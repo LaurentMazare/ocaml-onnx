@@ -1,0 +1,21 @@
+(library
+  (name onnx)
+  (public_name onnx)
+  (foreign_stubs (language c) (names onnx_stubs onnx_stubs_generated) (flags :standard  (:include c_flags.sexp)))
+  (c_library_flags :standard (:include c_library_flags.sexp) -lpthread -lm -ldl)
+  (libraries base bigarray ctypes ctypes.foreign ctypes.stubs stdio))
+
+(rule
+  (targets c_flags.sexp c_library_flags.sexp)
+  (deps    (:discover ../config/discover.exe))
+  (action  (run %{discover})))
+
+(rule
+  (targets bindings.ml)
+  (deps    ../stubs/bindings.ml)
+  (action  (copy ../stubs/bindings.ml bindings.ml)))
+
+(rule
+  (targets onnx_stubs_generated.c onnx_generated.ml)
+  (deps    (:gen ../stubs/gen.exe))
+  (action  (run %{gen})))

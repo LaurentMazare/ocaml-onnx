@@ -1,0 +1,4 @@
+(executable
+ (name basic)
+ (modules basic)
+ (libraries base stdio onnx))

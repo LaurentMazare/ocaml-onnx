@@ -1,0 +1,5 @@
+(library
+ (name onnx_tests)
+ (inline_tests (deps add_one.onnx))
+ (libraries base onnx stdio)
+ (preprocess (pps ppx_expect)))
