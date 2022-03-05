@@ -8,8 +8,8 @@
 OrtStatus* create_env(char *, OrtEnv **);
 OrtStatus* create_session_options(OrtSessionOptions **);
 OrtStatus* create_session(OrtSession **, OrtEnv *, OrtSessionOptions *, char *);
-OrtStatus *create_tensor_with_data_as_ort_value(void *, size_t, int64_t *, size_t, OrtValue **);
-OrtStatus *create_tensor_as_ort_value(int64_t *, size_t, OrtValue **);
+OrtStatus *create_tensor_with_data_as_ort_value(void *, size_t, int64_t *, size_t, int, OrtValue **);
+OrtStatus *create_tensor_as_ort_value(int64_t *, size_t, int, OrtValue **);
 
 char *status_get_error_message(OrtStatus *);
 OrtStatus* session_get_input_count(OrtSession *, size_t *);

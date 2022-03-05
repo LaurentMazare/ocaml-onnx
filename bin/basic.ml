@@ -37,5 +37,5 @@ let () =
     dim_count
     dims;
   Stdio.printf "Converting to bigarray...\n%!";
-  let ba = W.Value.to_bigarray tensor |> Bigarray.array1_of_genarray in
+  let ba = W.Value.to_bigarray tensor Float32 |> Bigarray.array1_of_genarray in
   Stdio.printf "> %f\n%!" ba.{0}

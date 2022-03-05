@@ -17,7 +17,12 @@ let extract_flags c ~package =
 let onnxruntime_flags () =
   let config ~lib_dir =
     let cflags = [ "-isystem"; Printf.sprintf "%s/include" lib_dir ] in
-    let libs = [ Printf.sprintf "%s/lib/libonnxruntime.so" lib_dir ] in
+    let libs =
+      [ Printf.sprintf "-Wl,-rpath,%s/lib" lib_dir
+      ; Printf.sprintf "-L%s/lib" lib_dir
+      ; "-lonnxruntime"
+      ]
+    in
     { C.Pkg_config.cflags; libs }
   in
   match Caml.Sys.getenv_opt "LIBONNXRUNTIME" with

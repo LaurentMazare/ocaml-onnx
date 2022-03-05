@@ -19,27 +19,22 @@ end
 module Value : sig
   type t
 
-  val create_tensor : shape:int array -> t
+  val create_tensor : Element_type.t -> shape:int array -> t
   val is_tensor : t -> bool
   val tensor_type_and_shape : t -> TensorTypeAndShapeInfo.t
-
-  val of_bigarray
-    :  (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Genarray.t
-    -> t
+  val of_bigarray : (_, _, Bigarray.c_layout) Bigarray.Genarray.t -> t
 
   val to_bigarray
     :  t
-    -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Genarray.t
+    -> ('a, 'b) Bigarray.kind
+    -> ('a, 'b, Bigarray.c_layout) Bigarray.Genarray.t
 
-  val copy_from_bigarray
-    :  t
-    -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Genarray.t
-    -> unit
-
-  val copy_to_bigarray
-    :  t
-    -> (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Genarray.t
-    -> unit
+  (* The [copy_from_...] functions do not check that the actual value type matches the
+     bigarray type. It might be a good idea to introduce a parameterized type for tensors
+     as a wrapper around [Value.t].
+  *)
+  val copy_from_bigarray : t -> (_, _, Bigarray.c_layout) Bigarray.Genarray.t -> unit
+  val copy_to_bigarray : t -> (_, _, Bigarray.c_layout) Bigarray.Genarray.t -> unit
 end
 
 module SessionOptions : sig

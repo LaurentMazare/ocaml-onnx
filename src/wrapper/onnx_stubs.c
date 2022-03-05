@@ -142,7 +142,47 @@ OrtStatus* tensor_type_and_shape_info_get_tensor_element_type(OrtTensorTypeAndSh
   return NULL;
 }
 
-OrtStatus *create_tensor_with_data_as_ort_value(void *data, size_t data_len, int64_t *shape, size_t shape_len, OrtValue **v) {
+enum ONNXTensorElementDataType element_type_of_int(int type_) {
+  switch (type_) {
+    case 0:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+    case 1:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT;
+    case 2:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8;
+    case 3:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8;
+    case 4:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16;
+    case 5:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16;
+    case 6:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32;
+    case 7:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64;
+    case 8:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING;
+    case 9:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL;
+    case 10:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16;
+    case 11:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE;
+    case 12:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32;
+    case 13:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64;
+    case 14:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX64;
+    case 15:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX128;
+    case 16:
+      return ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16;
+  }
+  return ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED;
+}
+
+OrtStatus *create_tensor_with_data_as_ort_value(void *data, size_t data_len, int64_t *shape, size_t shape_len, int et, OrtValue **v) {
   OrtMemoryInfo* memory_info;
   const OrtApi *g_ort = current_ort();
 
@@ -154,14 +194,13 @@ OrtStatus *create_tensor_with_data_as_ort_value(void *data, size_t data_len, int
                                                  data_len,
                                                  shape,
                                                  shape_len,
-                                                 // TODO: expose more types.
-                                                 ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+                                                 element_type_of_int(et),
                                                  v);
   g_ort->ReleaseMemoryInfo(memory_info);
   return status;
 }
 
-OrtStatus *create_tensor_as_ort_value(int64_t *shape, size_t shape_len, OrtValue **v) {
+OrtStatus *create_tensor_as_ort_value(int64_t *shape, size_t shape_len, int et, OrtValue **v) {
   const OrtApi *g_ort = current_ort();
   OrtAllocator* allocator;
   OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
@@ -170,7 +209,7 @@ OrtStatus *create_tensor_as_ort_value(int64_t *shape, size_t shape_len, OrtValue
                                        allocator,
                                        shape,
                                        shape_len,
-                                       ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+                                       element_type_of_int(et),
                                        v);
 }
 

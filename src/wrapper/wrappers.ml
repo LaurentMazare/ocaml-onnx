@@ -74,7 +74,7 @@ end
 module Value = struct
   type t = W.Value.t
 
-  let create_tensor ~shape =
+  let create_tensor element_type ~shape =
     let shape_len = Array.length shape in
     let shape =
       let ca = Ctypes.CArray.make Ctypes.int64_t shape_len in
@@ -85,7 +85,12 @@ module Value = struct
       let shape_len = Unsigned.Size_t.of_int shape_len in
       create
         (module W.Value)
-        (fun ptr -> W.Value.create_tensor (Ctypes.CArray.start shape) shape_len ptr)
+        (fun ptr ->
+          W.Value.create_tensor
+            (Ctypes.CArray.start shape)
+            shape_len
+            (Element_type.to_c_int element_type)
+            ptr)
     in
     keep_alive shape;
     t
@@ -100,9 +105,6 @@ module Value = struct
       (fun ptr -> W.Value.tensor_type_and_shape t ptr)
 
   let copy_from_bigarray t ba =
-    (match Bigarray.Genarray.kind ba with
-    | Float32 -> ()
-    | _ -> .);
     (match Bigarray.Genarray.layout ba with
     | C_layout -> ()
     | _ -> .);
@@ -115,9 +117,6 @@ module Value = struct
     keep_alive ba
 
   let copy_to_bigarray t ba =
-    (match Bigarray.Genarray.kind ba with
-    | Float32 -> ()
-    | _ -> .);
     (match Bigarray.Genarray.layout ba with
     | C_layout -> ()
     | _ -> .);
@@ -129,21 +128,40 @@ module Value = struct
     |> check_and_release_status;
     keep_alive ba
 
-  let of_bigarray ba =
-    let t = create_tensor ~shape:(Bigarray.Genarray.dims ba) in
+  let of_bigarray (type a b) (ba : (b, a, Bigarray.c_layout) Bigarray.Genarray.t) =
+    let (element_type : Element_type.t) =
+      match Bigarray.Genarray.kind ba with
+      | Float32 -> Float
+      | Float64 -> Double
+      | Int8_signed -> Int8
+      | Int8_unsigned -> UInt8
+      | Int16_signed -> Int16
+      | Int16_unsigned -> UInt16
+      | Int32 -> Int32
+      | Int64 -> Int64
+      | _ -> Unknown
+    in
+    let t = create_tensor element_type ~shape:(Bigarray.Genarray.dims ba) in
     copy_from_bigarray t ba;
     t
 
-  let to_bigarray t =
+  let to_bigarray (type a b) t (kind : (a, b) Bigarray.kind) =
     let tensor_type_and_shape = tensor_type_and_shape t in
     let dims = TensorTypeAndShapeInfo.dimensions tensor_type_and_shape in
-    let element_type = TensorTypeAndShapeInfo.element_type tensor_type_and_shape in
-    match element_type with
-    | Float ->
-      let ba = Bigarray.Genarray.create Float32 C_layout dims in
-      copy_to_bigarray t ba;
-      ba
-    | _ -> failwith "unsupported element type"
+    let (ba : (a, b, Bigarray.c_layout) Bigarray.Genarray.t) =
+      match kind, TensorTypeAndShapeInfo.element_type tensor_type_and_shape with
+      | Float32, Float -> Bigarray.Genarray.create kind C_layout dims
+      | Float64, Double -> Bigarray.Genarray.create kind C_layout dims
+      | Int64, Int64 -> Bigarray.Genarray.create kind C_layout dims
+      | Int32, Int32 -> Bigarray.Genarray.create kind C_layout dims
+      | _, et ->
+        Printf.failwithf
+          "unsupported element type or type mismatch, tensor type %s"
+          (Element_type.to_string et)
+          ()
+    in
+    copy_to_bigarray t ba;
+    ba
 end
 
 module Session = struct

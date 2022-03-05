@@ -78,12 +78,18 @@ module C (F : Cstubs.FOREIGN) = struct
     let create_tensor =
       foreign
         "create_tensor_as_ort_value"
-        (ptr int64_t @-> size_t @-> ptr t @-> returning Status.t)
+        (ptr int64_t @-> size_t @-> int @-> ptr t @-> returning Status.t)
 
     let create_tensor_with_data =
       foreign
         "create_tensor_with_data_as_ort_value"
-        (ptr void @-> size_t @-> ptr int64_t @-> size_t @-> ptr t @-> returning Status.t)
+        (ptr void
+        @-> size_t
+        @-> ptr int64_t
+        @-> size_t
+        @-> int
+        @-> ptr t
+        @-> returning Status.t)
 
     let is_tensor = foreign "value_is_tensor" (t @-> ptr int @-> returning Status.t)
 
