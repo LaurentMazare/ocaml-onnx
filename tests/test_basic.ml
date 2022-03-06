@@ -6,8 +6,12 @@ let%expect_test _ =
   let session_options = W.SessionOptions.create () in
   let session = W.Session.create env session_options ~model_path:"add_one.onnx" in
   Stdio.printf "%d %d\n" (W.Session.input_count session) (W.Session.output_count session);
+  let input_names = W.Session.input_names session |> String.concat ~sep:"|" in
+  let output_names = W.Session.output_names session |> String.concat ~sep:"|" in
+  Stdio.printf "%s %s\n" input_names output_names;
   [%expect {|
-    1 1 |}];
+    1 1
+    input output |}];
   let run_model
       (type a b)
       (kind : (a, b) Bigarray.kind)

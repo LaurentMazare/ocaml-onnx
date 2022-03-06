@@ -191,6 +191,25 @@ module Session = struct
 
   let input_count t = count t ~count_fn:W.Session.input_count
   let output_count t = count t ~count_fn:W.Session.output_count
+
+  let get_name t idx ~fn =
+    let ptr = Ctypes.(allocate_n (ptr char) ~count:1) in
+    if add_compact then Caml.Gc.compact ();
+    fn t idx ptr |> check_and_release_status;
+    let ptr = Ctypes.( !@ ) ptr in
+    if Ctypes.is_null ptr then Printf.failwithf "returned null %d" idx ();
+    let rec loop acc ptr =
+      let chr = Ctypes.( !@ ) ptr in
+      if Char.to_int chr = 0 then acc else loop (chr :: acc) (Ctypes.( +@ ) ptr 1)
+    in
+    let name = loop [] ptr |> List.rev |> String.of_char_list in
+    W.default_allocator_free (Ctypes.to_voidp ptr) |> check_and_release_status;
+    name
+
+  let input_name t idx = get_name t idx ~fn:W.Session.input_name
+  let output_name t idx = get_name t idx ~fn:W.Session.output_name
+  let input_names t = List.init (input_count t) ~f:(input_name t)
+  let output_names t = List.init (output_count t) ~f:(output_name t)
 end
 
 module SessionWithArgs = struct

@@ -130,6 +130,16 @@ module C (F : Cstubs.FOREIGN) = struct
     let output_count =
       foreign "session_get_output_count" (t @-> ptr size_t @-> returning Status.t)
 
+    let input_name =
+      foreign
+        "session_get_input_name"
+        (t @-> int @-> ptr (ptr char) @-> returning Status.t)
+
+    let output_name =
+      foreign
+        "session_get_output_name"
+        (t @-> int @-> ptr (ptr char) @-> returning Status.t)
+
     let run_1_1 =
       foreign
         "session_run_1_1"
@@ -149,4 +159,7 @@ module C (F : Cstubs.FOREIGN) = struct
 
     let release = foreign "release_session" (t @-> returning void)
   end
+
+  let default_allocator_free =
+    foreign "default_allocator_free" (ptr void @-> returning Status.t)
 end

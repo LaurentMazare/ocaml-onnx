@@ -14,6 +14,8 @@ OrtStatus *create_tensor_as_ort_value(int64_t *, size_t, int, OrtValue **);
 char *status_get_error_message(OrtStatus *);
 OrtStatus* session_get_input_count(OrtSession *, size_t *);
 OrtStatus* session_get_output_count(OrtSession *, size_t *);
+OrtStatus *session_get_input_name(OrtSession *, int, char **);
+OrtStatus *session_get_output_name(OrtSession *, int, char **);
 OrtStatus* session_run_1_1(OrtSession *, char *, char *, OrtValue*, OrtValue **);
 OrtStatus* session_run(OrtSession *, char **, int, char **, int, OrtValue **, OrtValue **);
 OrtStatus* value_is_tensor(OrtValue *, int *);
@@ -25,6 +27,8 @@ OrtStatus* tensor_type_and_shape_info_dimensions(OrtTensorTypeAndShapeInfo *, in
 OrtStatus* tensor_type_and_shape_info_get_dimensions(OrtTensorTypeAndShapeInfo *, int64_t *, size_t);
 OrtStatus* tensor_type_and_shape_info_get_tensor_element_type(OrtTensorTypeAndShapeInfo *, int *);
 OrtStatus* tensor_type_and_shape_info_get_tensor_shape_element_count(OrtTensorTypeAndShapeInfo *, size_t *);
+
+OrtStatus *default_allocator_free(void*);
 
 void release_status(OrtStatus *);
 void release_env(OrtEnv *);

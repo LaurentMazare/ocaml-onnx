@@ -252,3 +252,27 @@ OrtStatus* value_tensor_memcpy_of_ptr(OrtValue *v, void *data, size_t data_len) 
   memcpy(tensor_data, data, data_len);
   return NULL;
 }
+
+OrtStatus *session_get_input_name(OrtSession *s, int index, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->SessionGetInputName(s, index, allocator, ptr);
+}
+
+OrtStatus *session_get_output_name(OrtSession *s, int index, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->SessionGetOutputName(s, index, allocator, ptr);
+}
+
+OrtStatus *default_allocator_free(void *ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->AllocatorFree(allocator, ptr);
+}

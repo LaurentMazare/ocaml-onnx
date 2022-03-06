@@ -49,6 +49,10 @@ module Session : sig
   val create : Env.t -> SessionOptions.t -> model_path:string -> t
   val input_count : t -> int
   val output_count : t -> int
+  val input_name : t -> int -> string
+  val output_name : t -> int -> string
+  val input_names : t -> string list
+  val output_names : t -> string list
   val run_1_1 : t -> Value.t -> input_name:string -> output_name:string -> Value.t
 end
 
