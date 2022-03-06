@@ -2,7 +2,10 @@ open! Base
 open! Import
 module CArray = Ctypes.CArray
 
-let add_compact = false
+let add_compact =
+  match Sys.getenv "OCAML_ONNX_ADD_COMPACT" with
+  | None | Some "false" | Some "0" -> false
+  | Some _ -> true
 
 let check_and_release_status status =
   if not (Ctypes.is_null status)
@@ -173,7 +176,7 @@ module Session = struct
         (module W.Value)
         (fun ptr -> W.Session.run_1_1 t input_name output_name input_value ptr)
     in
-    keep_alive input_value;
+    keep_alive (t, input_value);
     output_value
 
   let create env session_options ~model_path =
@@ -279,8 +282,11 @@ module SessionWithArgs = struct
       CArray.set t.input_values i (Ctypes.null |> Ctypes.from_voidp W.Value.struct_)
     done;
     check_and_release_status status;
-    keep_alive t;
-    keep_alive input_values;
+    (* The elements in [input_values] need to be kept alive as [CArray.set] unwraps the
+       fat pointer so a GC taking place just before [W.Session.run] would have a chance
+       to collect/run the finalizer on the input values if they are not referred to
+       after the call to [run]. *)
+    keep_alive (t, input_values);
     Array.init (CArray.length t.output_values) ~f:(fun i ->
         let output_value = CArray.get t.output_values i in
         CArray.set t.output_values i (Ctypes.null |> Ctypes.from_voidp W.Value.struct_);

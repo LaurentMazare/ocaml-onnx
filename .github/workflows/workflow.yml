@@ -40,4 +40,6 @@ jobs:
 
       - run: LIBONNXRUNTIME=$PWD/onnxruntime-linux-x64-1.10.0 opam exec -- dune runtest
 
+      - run: OCAML_ONNX_ADD_COMPACT=1 LIBONNXRUNTIME=$PWD/onnxruntime-linux-x64-1.10.0 opam exec -- dune runtest
+
       - run: LIBONNXRUNTIME=$PWD/onnxruntime-linux-x64-1.10.0 opam exec -- dune exec bin/basic.exe
