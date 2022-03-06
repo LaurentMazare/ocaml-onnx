@@ -19,3 +19,14 @@ LIBONNXRUNTIME=$PWD/onnxruntime-linux-x64-1.10.0 dune exec bin/style_transfer.ex
 ```
 
 The input image will be resized to 720x720 so you may want to make its aspect ratio square first.
+
+The OCaml code for running this model is roughly as follows:
+```bash
+    let env = W.Env.create "ocaml-env" in
+    let s = W.Session.create env (W.SessionOptions.create ()) ~model_path in
+    let in_tensor = Onnx_image_helper.Image.load_image input_path |> Or_error.ok_exn in
+    let out_tensor =
+      W.Session.run_1_1 s in_tensor ~input_name:"inputImage" ~output_name:"outputImage"
+    in
+    Onnx_image_helper.Image.write_image out_tensor output_path
+```
