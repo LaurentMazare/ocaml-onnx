@@ -31,6 +31,6 @@ The OCaml code for running this model is roughly as follows:
     Onnx_image_helper.Image.write_image out_tensor output_path
 ```
 
-#![St Paul](https://raw.githubusercontent.com/LaurentMazare/ocaml-onnx/master/bin/stpaul.jpg)
+![St Paul](https://raw.githubusercontent.com/LaurentMazare/ocaml-onnx/master/bin/stpaul.jpg)
 
-#![Candy St Paul](https://raw.githubusercontent.com/LaurentMazare/ocaml-onnx/master/bin/stpaul-candy.jpg)
+![Candy St Paul](https://raw.githubusercontent.com/LaurentMazare/ocaml-onnx/master/bin/stpaul-candy.jpg)
