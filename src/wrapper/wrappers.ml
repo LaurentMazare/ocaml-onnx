@@ -168,9 +168,13 @@ module Session = struct
   type t = W.Session.t
 
   let run_1_1 t input_value ~input_name ~output_name =
-    create
-      (module W.Value)
-      (fun ptr -> W.Session.run_1_1 t input_name output_name input_value ptr)
+    let output_value =
+      create
+        (module W.Value)
+        (fun ptr -> W.Session.run_1_1 t input_name output_name input_value ptr)
+    in
+    keep_alive input_value;
+    output_value
 
   let create env session_options ~model_path =
     let t =
@@ -276,6 +280,7 @@ module SessionWithArgs = struct
     done;
     check_and_release_status status;
     keep_alive t;
+    keep_alive input_values;
     Array.init (CArray.length t.output_values) ~f:(fun i ->
         let output_value = CArray.get t.output_values i in
         CArray.set t.output_values i (Ctypes.null |> Ctypes.from_voidp W.Value.struct_);
