@@ -2,3 +2,8 @@
  (name basic)
  (modules basic)
  (libraries base stdio onnx))
+
+(executable
+ (name style_transfer)
+ (modules style_transfer)
+ (libraries base stdio onnx_image_helper))

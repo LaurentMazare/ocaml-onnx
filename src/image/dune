@@ -1,0 +1,4 @@
+(library
+  (name onnx_image_helper)
+  (foreign_stubs (language c) (names ml_stb_image ml_stb_image_resize ml_stb_image_write))
+  (libraries base bigarray onnx stdio))
