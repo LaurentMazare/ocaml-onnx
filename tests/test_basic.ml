@@ -79,3 +79,30 @@ let%expect_test _ =
     > 1 3.7182817459106445 |}]
   | array ->
     Printf.failwithf "unexpected number of tensors from run %d" (Array.length array) ()
+
+let input_output_info_to_string { W.InputOutputInfo.name; element_type; dimensions } =
+  Printf.sprintf
+    "(%s %s %s)"
+    name
+    (Onnx.Element_type.to_string element_type)
+    (Array.to_list dimensions |> List.map ~f:Int.to_string |> String.concat ~sep:",")
+
+let%expect_test _ =
+  let env = W.Env.create "foo" in
+  let session_options = W.SessionOptions.create () in
+  let session = W.Session.create env session_options ~model_path:"add_one.onnx" in
+  let inputs =
+    W.Session.inputs session
+    |> List.map ~f:input_output_info_to_string
+    |> String.concat ~sep:","
+  in
+  let outputs =
+    W.Session.outputs session
+    |> List.map ~f:input_output_info_to_string
+    |> String.concat ~sep:","
+  in
+  Stdio.printf "inputs:  %s\n" inputs;
+  Stdio.printf "outputs: %s\n" outputs;
+  [%expect {|
+    inputs:  (input Float 1)
+    outputs: (output Float 1) |}]

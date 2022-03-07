@@ -184,8 +184,30 @@ module Value = struct
     ba
 end
 
+module InputOutputInfo = struct
+  type t =
+    { name : string
+    ; element_type : Element_type.t
+    ; dimensions : int array
+    }
+end
+
 module Session = struct
   type t = W.Session.t
+
+  let input_type_info t idx =
+    let type_info =
+      create (module W.TypeInfo) (fun ptr -> W.Session.input_type_info t idx ptr)
+    in
+    keep_alive t;
+    type_info
+
+  let output_type_info t idx =
+    let type_info =
+      create (module W.TypeInfo) (fun ptr -> W.Session.output_type_info t idx ptr)
+    in
+    keep_alive t;
+    type_info
 
   let run_1_1 t input_value ~input_name ~output_name =
     let output_value =
@@ -234,6 +256,22 @@ module Session = struct
   let output_name t idx = get_name t idx ~fn:W.Session.output_name
   let input_names t = List.init (input_count t) ~f:(input_name t)
   let output_names t = List.init (output_count t) ~f:(output_name t)
+
+  let inputs t =
+    List.init (input_count t) ~f:(fun i ->
+        let tensor_info = input_type_info t i |> TypeInfo.cast_to_tensor_info in
+        { InputOutputInfo.name = input_name t i
+        ; element_type = TensorTypeAndShapeInfo.element_type tensor_info
+        ; dimensions = TensorTypeAndShapeInfo.dimensions tensor_info
+        })
+
+  let outputs t =
+    List.init (output_count t) ~f:(fun i ->
+        let tensor_info = output_type_info t i |> TypeInfo.cast_to_tensor_info in
+        { InputOutputInfo.name = output_name t i
+        ; element_type = TensorTypeAndShapeInfo.element_type tensor_info
+        ; dimensions = TensorTypeAndShapeInfo.dimensions tensor_info
+        })
 end
 
 module SessionWithArgs = struct

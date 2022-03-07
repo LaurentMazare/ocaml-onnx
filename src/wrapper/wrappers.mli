@@ -50,16 +50,28 @@ module SessionOptions : sig
   val create : unit -> t
 end
 
+module InputOutputInfo : sig
+  type t =
+    { name : string
+    ; element_type : Element_type.t
+    ; dimensions : int array
+    }
+end
+
 module Session : sig
   type t
 
   val create : Env.t -> SessionOptions.t -> model_path:string -> t
   val input_count : t -> int
   val output_count : t -> int
+  val input_type_info : t -> int -> TypeInfo.t
+  val output_type_info : t -> int -> TypeInfo.t
   val input_name : t -> int -> string
   val output_name : t -> int -> string
   val input_names : t -> string list
   val output_names : t -> string list
+  val inputs : t -> InputOutputInfo.t list
+  val outputs : t -> InputOutputInfo.t list
   val run_1_1 : t -> Value.t -> input_name:string -> output_name:string -> Value.t
 end
 
