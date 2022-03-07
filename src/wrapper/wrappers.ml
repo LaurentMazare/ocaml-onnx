@@ -45,6 +45,21 @@ module SessionOptions = struct
   let create () = create (module W.SessionOptions) W.SessionOptions.create
 end
 
+module TypeInfo = struct
+  type t = W.TypeInfo.t
+
+  let cast_to_tensor_info t =
+    let arr = CArray.make W.TensorTypeAndShapeInfo.t 1 in
+    if add_compact then Caml.Gc.compact ();
+    W.TypeInfo.cast_to_tensor_info t (CArray.start arr) |> check_and_release_status;
+    let tensor_info = CArray.get arr 0 in
+    if Ctypes.is_null t then failwith "function returned null despite ok status";
+    (* When not null, [tensor_info] should not be freed and will be valid until [t] is
+       released. *)
+    Caml.Gc.finalise (fun _ -> keep_alive t) tensor_info;
+    tensor_info
+end
+
 module TensorTypeAndShapeInfo = struct
   type t = W.TensorTypeAndShapeInfo.t
 
@@ -101,6 +116,8 @@ module Value = struct
   let is_tensor t =
     W.Value.is_tensor t (CArray.start int_arr1) |> check_and_release_status;
     CArray.get int_arr1 0 <> 0
+
+  let type_info t = create (module W.TypeInfo) (fun ptr -> W.Value.type_info t ptr)
 
   let tensor_type_and_shape t =
     create

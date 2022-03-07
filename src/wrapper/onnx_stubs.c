@@ -37,6 +37,10 @@ void release_value(OrtValue *value) {
   current_ort()->ReleaseValue(value);
 }
 
+void release_type_info(OrtTypeInfo *t) {
+  current_ort()->ReleaseTypeInfo(t);
+}
+
 void release_tensor_type_and_shape_info(OrtTensorTypeAndShapeInfo *v) {
   current_ort()->ReleaseTensorTypeAndShapeInfo(v);
 }
@@ -59,6 +63,10 @@ OrtStatus* session_get_input_count(OrtSession *session, size_t *value) {
 
 OrtStatus* session_get_output_count(OrtSession *session, size_t *value) {
   return current_ort()->SessionGetOutputCount(session, value);
+}
+
+OrtStatus* value_get_type_info(OrtValue *value, OrtTypeInfo **ptr) {
+  return current_ort()->GetTypeInfo(value, ptr);
 }
 
 OrtStatus* value_is_tensor(OrtValue *value, int *is_tensor) {
@@ -269,10 +277,22 @@ OrtStatus *session_get_output_name(OrtSession *s, int index, char **ptr) {
   return g_ort->SessionGetOutputName(s, index, allocator, ptr);
 }
 
+OrtStatus *session_get_input_type_info(OrtSession *s, int index, OrtTypeInfo **ptr) {
+  return current_ort()->SessionGetInputTypeInfo(s, index, ptr);
+}
+
+OrtStatus *session_get_output_type_info(OrtSession *s, int index, OrtTypeInfo **ptr) {
+  return current_ort()->SessionGetOutputTypeInfo(s, index, ptr);
+}
+
 OrtStatus *default_allocator_free(void *ptr) {
   const OrtApi *g_ort = current_ort();
   OrtAllocator* allocator;
   OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
   if (status) return status;
   return g_ort->AllocatorFree(allocator, ptr);
+}
+
+OrtStatus* cast_type_info_to_tensor_info(OrtTypeInfo* t, OrtTensorTypeAndShapeInfo** ptr) {
+  return current_ort()->CastTypeInfoToTensorInfo(t, (const 	OrtTensorTypeAndShapeInfo **)ptr);
 }

@@ -67,6 +67,22 @@ module C (F : Cstubs.FOREIGN) = struct
     let release = foreign "release_tensor_type_and_shape_info" (t @-> returning void)
   end
 
+  module TypeInfo = struct
+    type modl
+    type struct_ = modl Ctypes.structure
+    type t = struct_ ptr
+
+    let struct_ : struct_ typ = structure "OrtTypeInfo"
+    let t : t typ = ptr struct_
+
+    let cast_to_tensor_info =
+      foreign
+        "cast_type_info_to_tensor_info"
+        (t @-> ptr TensorTypeAndShapeInfo.t @-> returning Status.t)
+
+    let release = foreign "release_type_info" (t @-> returning void)
+  end
+
   module Value = struct
     type modl
     type struct_ = modl Ctypes.structure
@@ -92,6 +108,9 @@ module C (F : Cstubs.FOREIGN) = struct
         @-> returning Status.t)
 
     let is_tensor = foreign "value_is_tensor" (t @-> ptr int @-> returning Status.t)
+
+    let type_info =
+      foreign "value_get_type_info" (t @-> ptr TypeInfo.t @-> returning Status.t)
 
     let tensor_type_and_shape =
       foreign
@@ -129,6 +148,16 @@ module C (F : Cstubs.FOREIGN) = struct
 
     let output_count =
       foreign "session_get_output_count" (t @-> ptr size_t @-> returning Status.t)
+
+    let input_type_info =
+      foreign
+        "session_get_input_type_info"
+        (t @-> int @-> ptr TypeInfo.t @-> returning Status.t)
+
+    let output_type_info =
+      foreign
+        "session_get_output_type_info"
+        (t @-> int @-> ptr TypeInfo.t @-> returning Status.t)
 
     let input_name =
       foreign

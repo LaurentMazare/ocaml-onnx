@@ -16,11 +16,18 @@ module TensorTypeAndShapeInfo : sig
   val dimensions : t -> int array
 end
 
+module TypeInfo : sig
+  type t
+
+  val cast_to_tensor_info : t -> TensorTypeAndShapeInfo.t
+end
+
 module Value : sig
   type t
 
   val create_tensor : Element_type.t -> shape:int array -> t
   val is_tensor : t -> bool
+  val type_info : t -> TypeInfo.t
   val tensor_type_and_shape : t -> TensorTypeAndShapeInfo.t
   val of_bigarray : (_, _, Bigarray.c_layout) Bigarray.Genarray.t -> t
 
