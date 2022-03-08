@@ -245,17 +245,84 @@ OrtStatus* session_run(OrtSession *s, char **inames, int iname_len, char **oname
   return status;
 }
 
+size_t element_size(ONNXTensorElementDataType type_) {
+  switch (type_) {
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED:
+      return 0;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+      return 4;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8:
+      return 1;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8:
+      return 1;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16:
+      return 2;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16:
+      return 2;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
+      return 4;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
+      return 8;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING:
+      return 0;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL:
+      return 0;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16:
+      return 2;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE:
+      return 8;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32:
+      return 4;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64:
+      return 8;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX64:
+      return 8;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX128:
+      return 16;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16:
+      return 2;
+  }
+  return 0;
+}
+
+OrtStatus* check_data_len(OrtValue *v, size_t data_len) {
+  const OrtApi *g_ort = current_ort();
+  OrtTensorTypeAndShapeInfo* info;
+  OrtStatus *status = g_ort->GetTensorTypeAndShape(v, &info);
+  if (status) return status;
+  size_t element_count;
+  status = g_ort->GetTensorShapeElementCount(info, &element_count);
+  if (status) {
+    g_ort->ReleaseTensorTypeAndShapeInfo(info);
+    return status;
+  }
+  ONNXTensorElementDataType element_type;
+  status = g_ort->GetTensorElementType(info, &element_type);
+  g_ort->ReleaseTensorTypeAndShapeInfo(info);
+  if (status) return status;
+  if (data_len > element_size(element_type) * element_count) {
+    return g_ort->CreateStatus(ORT_FAIL, "size to copy is too large");
+  }
+  return NULL;
+}
+
 OrtStatus* value_tensor_memcpy_to_ptr(OrtValue *v, void *data, size_t data_len) {
+  OrtStatus* status = check_data_len(v, data_len);
+  if (status) return status;
+
   void* tensor_data;
-  OrtStatus *status = current_ort()->GetTensorMutableData(v, &tensor_data);
+  status = current_ort()->GetTensorMutableData(v, &tensor_data);
   if (status) return status;
   memcpy(data, tensor_data, data_len);
   return NULL;
 }
 
 OrtStatus* value_tensor_memcpy_of_ptr(OrtValue *v, void *data, size_t data_len) {
+  OrtStatus* status = check_data_len(v, data_len);
+  if (status) return status;
+
   void* tensor_data;
-  OrtStatus *status = current_ort()->GetTensorMutableData(v, &tensor_data);
+  status = current_ort()->GetTensorMutableData(v, &tensor_data);
   if (status) return status;
   memcpy(tensor_data, data, data_len);
   return NULL;
