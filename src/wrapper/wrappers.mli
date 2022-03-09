@@ -22,6 +22,10 @@ module TypeInfo : sig
   val cast_to_tensor_info : t -> TensorTypeAndShapeInfo.t
 end
 
+module ModelMetadata : sig
+  type t
+end
+
 module Value : sig
   type t
 
@@ -72,6 +76,7 @@ module Session : sig
   val output_names : t -> string list
   val inputs : t -> InputOutputInfo.t list
   val outputs : t -> InputOutputInfo.t list
+  val model_metadata : t -> ModelMetadata.t
   val run_1_1 : t -> Value.t -> input_name:string -> output_name:string -> Value.t
 end
 

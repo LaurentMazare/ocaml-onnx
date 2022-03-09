@@ -14,6 +14,16 @@ module C (F : Cstubs.FOREIGN) = struct
     let release = foreign "release_status" (t @-> returning void)
   end
 
+  module ModelMetadata = struct
+    type modl
+    type struct_ = modl Ctypes.structure
+    type t = struct_ ptr
+
+    let struct_ : struct_ typ = structure "OrtModelMetadata"
+    let t : t typ = ptr struct_
+    let release = foreign "release_model_metadata" (t @-> returning void)
+  end
+
   module Env = struct
     type modl
     type struct_ = modl Ctypes.structure
@@ -168,6 +178,11 @@ module C (F : Cstubs.FOREIGN) = struct
       foreign
         "session_get_output_name"
         (t @-> int @-> ptr (ptr char) @-> returning Status.t)
+
+    let model_metadata =
+      foreign
+        "session_get_model_metadata"
+        (t @-> ptr ModelMetadata.t @-> returning Status.t)
 
     let run_1_1 =
       foreign

@@ -45,6 +45,10 @@ void release_tensor_type_and_shape_info(OrtTensorTypeAndShapeInfo *v) {
   current_ort()->ReleaseTensorTypeAndShapeInfo(v);
 }
 
+void release_model_metadata(OrtModelMetadata *v) {
+  current_ort()->ReleaseModelMetadata(v);
+}
+
 OrtStatus* create_env(char *name, OrtEnv **env) {
   return current_ort()->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "ocaml-env", env);
 }
@@ -342,6 +346,10 @@ OrtStatus *session_get_output_name(OrtSession *s, int index, char **ptr) {
   OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
   if (status) return status;
   return g_ort->SessionGetOutputName(s, index, allocator, ptr);
+}
+
+OrtStatus *session_get_model_metadata(OrtSession *s, OrtModelMetadata **ptr) {
+  return current_ort()->SessionGetModelMetadata(s, ptr);
 }
 
 OrtStatus *session_get_input_type_info(OrtSession *s, int index, OrtTypeInfo **ptr) {

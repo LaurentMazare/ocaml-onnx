@@ -39,6 +39,10 @@ module Env = struct
   let create name = create (module W.Env) (fun ptr -> W.Env.create name ptr)
 end
 
+module ModelMetadata = struct
+  type t = W.ModelMetadata.t
+end
+
 module SessionOptions = struct
   type t = W.SessionOptions.t
 
@@ -194,6 +198,13 @@ end
 
 module Session = struct
   type t = W.Session.t
+
+  let model_metadata t =
+    let model_metadata =
+      create (module W.ModelMetadata) (fun ptr -> W.Session.model_metadata t ptr)
+    in
+    keep_alive t;
+    model_metadata
 
   let input_type_info t idx =
     let type_info =
