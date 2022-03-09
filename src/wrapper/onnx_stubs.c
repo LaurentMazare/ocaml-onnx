@@ -371,3 +371,48 @@ OrtStatus *default_allocator_free(void *ptr) {
 OrtStatus* cast_type_info_to_tensor_info(OrtTypeInfo* t, OrtTensorTypeAndShapeInfo** ptr) {
   return current_ort()->CastTypeInfoToTensorInfo(t, (const 	OrtTensorTypeAndShapeInfo **)ptr);
 }
+
+OrtStatus *model_metadata_get_description(OrtModelMetadata *s, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetDescription(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_domain(OrtModelMetadata *s, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetDomain(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_graph_description(OrtModelMetadata *s, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetGraphDescription(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_graph_name(OrtModelMetadata *s, char ** ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetGraphName(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_producer_name(OrtModelMetadata *s, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetProducerName(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_version(OrtModelMetadata *s, int64_t *ptr) {
+  const OrtApi *g_ort = current_ort();
+  return g_ort->ModelMetadataGetVersion(s, ptr);
+}

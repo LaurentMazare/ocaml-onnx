@@ -105,4 +105,12 @@ let%expect_test _ =
   Stdio.printf "outputs: %s\n" outputs;
   [%expect {|
     inputs:  (input Float 1)
-    outputs: (output Float 1) |}]
+    outputs: (output Float 1) |}];
+  let metadata = W.Session.model_metadata session in
+  Stdio.printf "> %s\n%!" (W.ModelMetadata.description metadata);
+  Stdio.printf "> %s\n%!" (W.ModelMetadata.domain metadata);
+  Stdio.printf "> %s\n%!" (W.ModelMetadata.graph_description metadata);
+  Stdio.printf "> %s\n%!" (W.ModelMetadata.graph_name metadata);
+  Stdio.printf "> %s\n%!" (W.ModelMetadata.producer_name metadata);
+  Stdio.printf "> %s\n%!" (W.ModelMetadata.version metadata |> Int64.to_string);
+  [%expect {||}]

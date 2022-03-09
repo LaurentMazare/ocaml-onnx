@@ -21,6 +21,31 @@ module C (F : Cstubs.FOREIGN) = struct
 
     let struct_ : struct_ typ = structure "OrtModelMetadata"
     let t : t typ = ptr struct_
+
+    let description =
+      foreign
+        "model_metadata_get_description"
+        (t @-> ptr (ptr char) @-> returning Status.t)
+
+    let domain =
+      foreign "model_metadata_get_domain" (t @-> ptr (ptr char) @-> returning Status.t)
+
+    let graph_description =
+      foreign
+        "model_metadata_get_graph_description"
+        (t @-> ptr (ptr char) @-> returning Status.t)
+
+    let graph_name =
+      foreign "model_metadata_get_graph_name" (t @-> ptr (ptr char) @-> returning Status.t)
+
+    let producer_name =
+      foreign
+        "model_metadata_get_producer_name"
+        (t @-> ptr (ptr char) @-> returning Status.t)
+
+    let version =
+      foreign "model_metadata_get_version" (t @-> ptr int64_t @-> returning Status.t)
+
     let release = foreign "release_model_metadata" (t @-> returning void)
   end
 

@@ -24,6 +24,13 @@ end
 
 module ModelMetadata : sig
   type t
+
+  val description : t -> string
+  val domain : t -> string
+  val graph_description : t -> string
+  val graph_name : t -> string
+  val producer_name : t -> string
+  val version : t -> Int64.t
 end
 
 module Value : sig

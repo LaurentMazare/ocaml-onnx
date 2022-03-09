@@ -14,6 +14,26 @@ let check_and_release_status status =
     W.Status.release status;
     failwith error_message)
 
+let get_string t ~on_null ~fn =
+  let ptr = Ctypes.(allocate_n (ptr char) ~count:1) in
+  if add_compact then Caml.Gc.compact ();
+  fn t ptr |> check_and_release_status;
+  let ptr = Ctypes.( !@ ) ptr in
+  if Ctypes.is_null ptr then on_null ();
+  let rec loop acc ptr =
+    let chr = Ctypes.( !@ ) ptr in
+    if Char.to_int chr = 0 then acc else loop (chr :: acc) (Ctypes.( +@ ) ptr 1)
+  in
+  let name = loop [] ptr |> List.rev |> String.of_char_list in
+  W.default_allocator_free (Ctypes.to_voidp ptr) |> check_and_release_status;
+  name
+
+let get_name t idx ~fn =
+  get_string
+    t
+    ~on_null:(fun () -> Printf.failwithf "returned null %d" idx ())
+    ~fn:(fun t ptr -> fn t idx ptr)
+
 module type S = sig
   type t
 
@@ -41,6 +61,19 @@ end
 
 module ModelMetadata = struct
   type t = W.ModelMetadata.t
+
+  let get_string = get_string ~on_null:(fun () -> failwith "c function returned null")
+  let description t = get_string t ~fn:W.ModelMetadata.description
+  let domain t = get_string t ~fn:W.ModelMetadata.domain
+  let producer_name t = get_string t ~fn:W.ModelMetadata.producer_name
+  let graph_description t = get_string t ~fn:W.ModelMetadata.graph_description
+  let graph_name t = get_string t ~fn:W.ModelMetadata.graph_name
+
+  let version t =
+    let ptr = Ctypes.(allocate_n int64_t ~count:1) in
+    W.ModelMetadata.version t ptr |> check_and_release_status;
+    if Ctypes.is_null ptr then failwith "version returned null";
+    Ctypes.( !@ ) ptr
 end
 
 module SessionOptions = struct
@@ -248,21 +281,6 @@ module Session = struct
 
   let input_count t = count t ~count_fn:W.Session.input_count
   let output_count t = count t ~count_fn:W.Session.output_count
-
-  let get_name t idx ~fn =
-    let ptr = Ctypes.(allocate_n (ptr char) ~count:1) in
-    if add_compact then Caml.Gc.compact ();
-    fn t idx ptr |> check_and_release_status;
-    let ptr = Ctypes.( !@ ) ptr in
-    if Ctypes.is_null ptr then Printf.failwithf "returned null %d" idx ();
-    let rec loop acc ptr =
-      let chr = Ctypes.( !@ ) ptr in
-      if Char.to_int chr = 0 then acc else loop (chr :: acc) (Ctypes.( +@ ) ptr 1)
-    in
-    let name = loop [] ptr |> List.rev |> String.of_char_list in
-    W.default_allocator_free (Ctypes.to_voidp ptr) |> check_and_release_status;
-    name
-
   let input_name t idx = get_name t idx ~fn:W.Session.input_name
   let output_name t idx = get_name t idx ~fn:W.Session.output_name
   let input_names t = List.init (input_count t) ~f:(input_name t)
