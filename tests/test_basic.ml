@@ -113,4 +113,10 @@ let%expect_test _ =
   Stdio.printf "> %s\n%!" (W.ModelMetadata.graph_name metadata);
   Stdio.printf "> %s\n%!" (W.ModelMetadata.producer_name metadata);
   Stdio.printf "> %s\n%!" (W.ModelMetadata.version metadata |> Int64.to_string);
-  [%expect {||}]
+  [%expect {|
+    >
+    >
+    >
+    > torch-jit-export
+    > pytorch
+    > 9223372036854775807 |}]
