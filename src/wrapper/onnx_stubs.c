@@ -16,9 +16,19 @@ void release_status(OrtStatus *status) {
   current_ort()->ReleaseStatus(status);
 }
 
+// strdup might not be defined, use this instead.
+// https://stackoverflow.com/questions/3599160/how-can-i-suppress-unused-parameter-warnings-in-c
+char *dupstr(const char *s) {
+    char *const result = malloc(strlen(s) + 1);
+    if (result) {
+        strcpy(result, s);
+    }
+    return result;
+}
+
 char *status_get_error_message(OrtStatus *status) {
   const char* _msg = current_ort()->GetErrorMessage(status);
-  return strdup(_msg);
+  return dupstr(_msg);
 }
 
 void release_env(OrtEnv *env) {
