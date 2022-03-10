@@ -382,6 +382,22 @@ OrtStatus* cast_type_info_to_tensor_info(OrtTypeInfo* t, OrtTensorTypeAndShapeIn
   return current_ort()->CastTypeInfoToTensorInfo(t, (const 	OrtTensorTypeAndShapeInfo **)ptr);
 }
 
+OrtStatus *model_metadata_get_custom_metadata_map_keys(OrtModelMetadata *s, char ***ptr, int64_t *nkeys) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetCustomMetadataMapKeys(s, allocator, ptr, nkeys);
+}
+
+OrtStatus *model_metadata_lookup_custom_metadata_map(OrtModelMetadata *s, char *key, char **value) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataLookupCustomMetadataMap(s, allocator, key, value);
+}
+
 OrtStatus *model_metadata_get_description(OrtModelMetadata *s, char **ptr) {
   const OrtApi *g_ort = current_ort();
   OrtAllocator* allocator;

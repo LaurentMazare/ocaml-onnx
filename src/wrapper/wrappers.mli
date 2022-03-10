@@ -30,6 +30,10 @@ module ModelMetadata : sig
   val graph_description : t -> string
   val graph_name : t -> string
   val producer_name : t -> string
+  val lookup_custom_map : t -> string -> string option
+
+  (* None is returned when there is no metadata custom map. *)
+  val custom_map_keys : t -> string list option
   val version : t -> Int64.t
 end
 

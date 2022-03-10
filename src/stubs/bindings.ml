@@ -46,6 +46,16 @@ module C (F : Cstubs.FOREIGN) = struct
     let version =
       foreign "model_metadata_get_version" (t @-> ptr int64_t @-> returning Status.t)
 
+    let custom_map_keys =
+      foreign
+        "model_metadata_get_custom_metadata_map_keys"
+        (t @-> ptr (ptr (ptr char)) @-> ptr int64_t @-> returning Status.t)
+
+    let lookup_custom_map =
+      foreign
+        "model_metadata_lookup_custom_metadata_map"
+        (t @-> string @-> ptr (ptr char) @-> returning Status.t)
+
     let release = foreign "release_model_metadata" (t @-> returning void)
   end
 

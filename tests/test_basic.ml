@@ -113,10 +113,17 @@ let%expect_test _ =
   Stdio.printf "> %s\n%!" (W.ModelMetadata.graph_name metadata);
   Stdio.printf "> %s\n%!" (W.ModelMetadata.producer_name metadata);
   Stdio.printf "> %s\n%!" (W.ModelMetadata.version metadata |> Int64.to_string);
-  [%expect {|
+  Stdio.printf "> %b\n%!" (W.ModelMetadata.custom_map_keys metadata |> Option.is_none);
+  Stdio.printf
+    "> %b\n%!"
+    (W.ModelMetadata.lookup_custom_map metadata "foo" |> Option.is_none);
+  [%expect
+    {|
     >
     >
     >
     > torch-jit-export
     > pytorch
-    > 9223372036854775807 |}]
+    > 9223372036854775807
+    > true
+    > true |}]

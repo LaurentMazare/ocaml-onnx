@@ -32,6 +32,10 @@ OrtStatus* tensor_type_and_shape_info_get_dimensions(OrtTensorTypeAndShapeInfo *
 OrtStatus* tensor_type_and_shape_info_get_tensor_element_type(OrtTensorTypeAndShapeInfo *, int *);
 OrtStatus* tensor_type_and_shape_info_get_tensor_shape_element_count(OrtTensorTypeAndShapeInfo *, size_t *);
 OrtStatus* cast_type_info_to_tensor_info(OrtTypeInfo*, OrtTensorTypeAndShapeInfo**);
+
+
+OrtStatus *model_metadata_get_custom_metadata_map_keys(OrtModelMetadata *, char ***, int64_t *);
+OrtStatus *model_metadata_lookup_custom_metadata_map(OrtModelMetadata *, char *, char **);
 OrtStatus *model_metadata_get_description(OrtModelMetadata *, char **);
 OrtStatus *model_metadata_get_domain(OrtModelMetadata *, char **);
 OrtStatus *model_metadata_get_graph_description(OrtModelMetadata *, char **);
