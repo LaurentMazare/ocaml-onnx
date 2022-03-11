@@ -71,6 +71,7 @@ module InputOutputInfo : sig
     ; element_type : Element_type.t
     ; dimensions : int array
     }
+  [@@deriving sexp]
 end
 
 module Session : sig

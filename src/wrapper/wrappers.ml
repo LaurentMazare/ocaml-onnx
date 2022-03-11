@@ -263,6 +263,7 @@ module InputOutputInfo = struct
     ; element_type : Element_type.t
     ; dimensions : int array
     }
+  [@@deriving sexp]
 end
 
 module Session = struct

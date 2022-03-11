@@ -22,6 +22,9 @@ depends: [
   "dune-configurator"
   "ocaml" {>= "4.10"}
   "ppx_expect" {>= "v0.13.0" & < "v0.15" with-test}
+  "ppx_sexp_conv" {>= "v0.13.0" & < "v0.15"}
+  "ppx_sexp_message" {>= "v0.13.0" & < "v0.15"}
+  "sexplib" {>= "v0.13.0" & < "v0.15"}
   "stdio"
 ]
 
