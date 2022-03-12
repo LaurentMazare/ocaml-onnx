@@ -442,3 +442,11 @@ OrtStatus *model_metadata_get_version(OrtModelMetadata *s, int64_t *ptr) {
   const OrtApi *g_ort = current_ort();
   return g_ort->ModelMetadataGetVersion(s, ptr);
 }
+
+OrtStatus* session_options_set_inter_op_num_threads(OrtSessionOptions *s, int n) {
+  return current_ort()->SetInterOpNumThreads(s, n);
+}
+
+OrtStatus* session_options_set_intra_op_num_threads(OrtSessionOptions *s, int n) {
+  return current_ort()->SetIntraOpNumThreads(s, n);
+}

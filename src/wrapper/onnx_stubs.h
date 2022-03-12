@@ -21,6 +21,8 @@ OrtStatus *session_get_output_type_info(OrtSession *, int, OrtTypeInfo **);
 OrtStatus *session_get_model_metadata(OrtSession *, OrtModelMetadata **);
 OrtStatus* session_run_1_1(OrtSession *, char *, char *, OrtValue*, OrtValue **);
 OrtStatus* session_run(OrtSession *, char **, int, char **, int, OrtValue **, OrtValue **);
+OrtStatus* session_options_set_inter_op_num_threads(OrtSessionOptions *, int);
+OrtStatus* session_options_set_intra_op_num_threads(OrtSessionOptions *, int);
 OrtStatus* value_get_type_info(OrtValue *, OrtTypeInfo **);
 OrtStatus* value_is_tensor(OrtValue *, int *);
 OrtStatus* value_get_tensor_type_and_shape(OrtValue *, OrtTensorTypeAndShapeInfo **);

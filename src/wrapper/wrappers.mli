@@ -63,6 +63,10 @@ module SessionOptions : sig
   type t
 
   val create : unit -> t
+
+  (* Use [threads:None] to use the default number of threads. *)
+  val set_inter_op_num_threads : t -> threads:int option -> unit
+  val set_intra_op_num_threads : t -> threads:int option -> unit
 end
 
 module InputOutputInfo : sig

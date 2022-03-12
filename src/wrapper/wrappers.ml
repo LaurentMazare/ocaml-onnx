@@ -116,6 +116,16 @@ module SessionOptions = struct
   type t = W.SessionOptions.t
 
   let create () = create (module W.SessionOptions) W.SessionOptions.create
+
+  let set_inter_op_num_threads t ~threads =
+    W.SessionOptions.set_inter_op_num_threads t (Option.value threads ~default:0)
+    |> check_and_release_status;
+    keep_alive t
+
+  let set_intra_op_num_threads t ~threads =
+    W.SessionOptions.set_intra_op_num_threads t (Option.value threads ~default:0)
+    |> check_and_release_status;
+    keep_alive t
 end
 
 module TypeInfo = struct

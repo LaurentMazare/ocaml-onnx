@@ -78,6 +78,13 @@ module C (F : Cstubs.FOREIGN) = struct
     let struct_ : struct_ typ = structure "OrtSessionOptions"
     let t : t typ = ptr struct_
     let create = foreign "create_session_options" (ptr t @-> returning Status.t)
+
+    let set_inter_op_num_threads =
+      foreign "session_options_set_inter_op_num_threads" (t @-> int @-> returning Status.t)
+
+    let set_intra_op_num_threads =
+      foreign "session_options_set_intra_op_num_threads" (t @-> int @-> returning Status.t)
+
     let release = foreign "release_session_options" (t @-> returning void)
   end
 
