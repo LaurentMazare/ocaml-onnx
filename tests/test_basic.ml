@@ -60,15 +60,12 @@ let%expect_test _ =
   let session_options = Session_options.create () in
   let session = Session.create env session_options ~model_path:"add_one.onnx" in
   let s =
-    Wrappers.SessionWithArgs.create
-      session
-      ~input_names:[ "input" ]
-      ~output_names:[ "output" ]
+    Session_with_args.create session ~input_names:[ "input" ] ~output_names:[ "output" ]
   in
   let ba = Bigarray.Array1.create Float32 C_layout 1 in
   ba.{0} <- 2.71828182846;
   let input_tensor = Bigarray.genarray_of_array1 ba |> Value.of_bigarray in
-  match Wrappers.SessionWithArgs.run s [| input_tensor |] with
+  match Session_with_args.run s [| input_tensor |] with
   | [| tensor |] ->
     let ba =
       Value.to_bigarray tensor Float32
