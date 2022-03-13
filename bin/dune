@@ -1,7 +1,8 @@
 (executable
  (name basic)
  (modules basic)
- (libraries base stdio onnx))
+ (libraries base stdio onnx)
+ (preprocess (pps ppx_sexp_conv ppx_sexp_message)))
 
 (executable
  (name style_transfer)

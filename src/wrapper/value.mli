@@ -8,3 +8,5 @@ val to_bigarray
   :  t
   -> ('a, 'b) Bigarray.kind
   -> ('a, 'b, Bigarray.c_layout) Bigarray.Genarray.t
+
+val tensor_type_and_shape : t -> Tensor_type_and_shape.t

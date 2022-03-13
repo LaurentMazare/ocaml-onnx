@@ -1,6 +1,5 @@
 open! Base
 open! Onnx
-module W = Onnx.Wrappers
 
 type buffer = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
@@ -75,8 +74,7 @@ let load_image
   | Error (`Msg msg) -> Or_error.error_string msg
 
 let write_image ?(channels = `hwc) ?(max_value = 1.) tensor filename =
-  let type_and_shape = Value.tensor_type_and_shape tensor in
-  let dims = W.TensorTypeAndShapeInfo.dimensions type_and_shape in
+  let dims = (Value.tensor_type_and_shape tensor).dimensions in
   let w, h, c =
     match channels, dims with
     | `chw, [| c; h; w |] | `chw, [| 1; c; h; w |] -> w, h, c

@@ -43,7 +43,7 @@ module Value : sig
   val create_tensor : Element_type.t -> shape:int array -> t
   val is_tensor : t -> bool
   val type_info : t -> TypeInfo.t
-  val tensor_type_and_shape : t -> TensorTypeAndShapeInfo.t
+  val tensor_type_and_shape_ : t -> TensorTypeAndShapeInfo.t
   val copy_from_bigarray : t -> (_, _, Bigarray.c_layout) Bigarray.Genarray.t -> unit
   val copy_to_bigarray : t -> (_, _, Bigarray.c_layout) Bigarray.Genarray.t -> unit
 end

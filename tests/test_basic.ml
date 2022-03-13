@@ -1,6 +1,5 @@
 open! Base
 open! Onnx
-module W = Wrappers
 
 let%expect_test _ =
   let env = Env.create "foo" in
@@ -33,16 +32,14 @@ let%expect_test _ =
       [%message
         ""
           ~is_tensor:(Value.is_tensor tensor : bool)
-          ~element_count:(W.TensorTypeAndShapeInfo.element_count type_and_shape : int)
-          ~dim_count:(W.TensorTypeAndShapeInfo.dimensions_count type_and_shape : int)
-          ~dims:(W.TensorTypeAndShapeInfo.dimensions type_and_shape : int array)
+          (type_and_shape : Tensor_type_and_shape.t)
           (elt_to_string ba.{0})]
   in
   run_model Float32 3.14159265358979 ~elt_to_string:Float.to_string;
   (* run_model Float64 2.71828182846 ~elt_to_string:Float.to_string; *)
   [%expect
     {|
-    ((is_tensor true) (element_count 1) (dim_count 1) (dims (1))
+    ((is_tensor true) (type_and_shape ((element_type Float) (dimensions (1))))
      4.1415929794311523) |}]
 
 let%expect_test _ =
@@ -52,24 +49,26 @@ let%expect_test _ =
     [%message
       ""
         ~is_tensor:(Value.is_tensor tensor : bool)
-        ~element_count:(W.TensorTypeAndShapeInfo.element_count type_and_shape : int)
-        ~dim_count:(W.TensorTypeAndShapeInfo.dimensions_count type_and_shape : int)
-        ~dims:(W.TensorTypeAndShapeInfo.dimensions type_and_shape : int array)];
+        (type_and_shape : Tensor_type_and_shape.t)];
   [%expect
     {|
-    ((is_tensor true) (element_count 56154) (dim_count 2) (dims (42 1337))) |}]
+    ((is_tensor true)
+     (type_and_shape ((element_type Int64) (dimensions (42 1337))))) |}]
 
 let%expect_test _ =
   let env = Env.create "foo" in
   let session_options = Session_options.create () in
   let session = Session.create env session_options ~model_path:"add_one.onnx" in
   let s =
-    W.SessionWithArgs.create session ~input_names:[ "input" ] ~output_names:[ "output" ]
+    Wrappers.SessionWithArgs.create
+      session
+      ~input_names:[ "input" ]
+      ~output_names:[ "output" ]
   in
   let ba = Bigarray.Array1.create Float32 C_layout 1 in
   ba.{0} <- 2.71828182846;
   let input_tensor = Bigarray.genarray_of_array1 ba |> Value.of_bigarray in
-  match W.SessionWithArgs.run s [| input_tensor |] with
+  match Wrappers.SessionWithArgs.run s [| input_tensor |] with
   | [| tensor |] ->
     let ba =
       Value.to_bigarray tensor Float32

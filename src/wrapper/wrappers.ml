@@ -202,7 +202,7 @@ module Value = struct
 
   let type_info t = create (module W.TypeInfo) (fun ptr -> W.Value.type_info t ptr)
 
-  let tensor_type_and_shape t =
+  let tensor_type_and_shape_ t =
     create
       (module W.TensorTypeAndShapeInfo)
       (fun ptr -> W.Value.tensor_type_and_shape t ptr)

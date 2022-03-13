@@ -1,6 +1,5 @@
 open! Base
 open! Onnx
-module W = Onnx.Wrappers
 
 let () =
   Stdio.printf "Starting...\n%!";
@@ -21,19 +20,11 @@ let () =
   in
   Stdio.printf "Running model done.\n%!";
   let type_and_shape = Value.tensor_type_and_shape tensor in
-  let dim_count = W.TensorTypeAndShapeInfo.dimensions_count type_and_shape in
-  let dims =
-    W.TensorTypeAndShapeInfo.dimensions type_and_shape
-    |> Array.to_list
-    |> List.map ~f:Int.to_string
-    |> String.concat ~sep:","
-  in
-  Stdio.printf
-    "%b %d %d %s\n%!"
-    (Value.is_tensor tensor)
-    (W.TensorTypeAndShapeInfo.element_count type_and_shape)
-    dim_count
-    dims;
+  Stdio.print_s
+    [%message
+      ""
+        ~is_tensor:(Value.is_tensor tensor : bool)
+        (type_and_shape : Tensor_type_and_shape.t)];
   Stdio.printf "Converting to bigarray...\n%!";
   let ba = Value.to_bigarray tensor Float32 |> Bigarray.array1_of_genarray in
   Stdio.printf "> %f\n%!" ba.{0}
