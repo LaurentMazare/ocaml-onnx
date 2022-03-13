@@ -1,4 +1,5 @@
-open Base
+open! Base
+open! Onnx
 module W = Onnx.Wrappers
 
 type buffer = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
@@ -43,7 +44,7 @@ let load_image
     in
     let shape = if use_batch_dim then 1 :: shape else shape in
     let ba = Bigarray.reshape (Bigarray.genarray_of_array1 ba) (Array.of_list shape) in
-    Ok (W.Value.of_bigarray ba)
+    Ok (Value.of_bigarray ba)
   in
   match Stb_image.load image_file with
   | Ok (image : _ Stb_image.t) ->
@@ -74,7 +75,7 @@ let load_image
   | Error (`Msg msg) -> Or_error.error_string msg
 
 let write_image ?(channels = `hwc) ?(max_value = 1.) tensor filename =
-  let type_and_shape = W.Value.tensor_type_and_shape tensor in
+  let type_and_shape = Value.tensor_type_and_shape tensor in
   let dims = W.TensorTypeAndShapeInfo.dimensions type_and_shape in
   let w, h, c =
     match channels, dims with
@@ -86,7 +87,7 @@ let write_image ?(channels = `hwc) ?(max_value = 1.) tensor filename =
       in
       Printf.failwithf "unexpected shape %s" shape ()
   in
-  let tensor_ba = W.Value.to_bigarray tensor Float32 in
+  let tensor_ba = Value.to_bigarray tensor Float32 in
   let tensor_ba = Bigarray.reshape_1 tensor_ba (w * h * c) in
   let ba = Bigarray.Array1.create Int8_unsigned C_layout (w * h * c) in
   let mult = 256. /. max_value in
