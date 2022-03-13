@@ -3,13 +3,11 @@ open! Onnx
 
 let () =
   Stdio.printf "Starting...\n%!";
-  let env = Env.create "foo" in
   let model_path =
     let argv = Sys.get_argv () in
     if Array.length argv > 1 then argv.(1) else "tests/add_one.onnx"
   in
-  let session_options = Session_options.create () in
-  let session = Session.create env session_options ~model_path in
+  let session = Env.create_session ~model_path () in
   Stdio.printf "%d %d\n%!" (Session.input_count session) (Session.output_count session);
   let ba = Bigarray.Array1.create Float32 C_layout 1 in
   ba.{0} <- 3.14159265358979;

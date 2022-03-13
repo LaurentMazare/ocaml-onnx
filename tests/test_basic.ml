@@ -2,9 +2,7 @@ open! Base
 open! Onnx
 
 let%expect_test _ =
-  let env = Env.create "foo" in
-  let session_options = Session_options.create () in
-  let session = Session.create env session_options ~model_path:"add_one.onnx" in
+  let session = Env.create_session ~model_path:"add_one.onnx" () in
   Stdio.print_s
     [%message
       ""
@@ -56,9 +54,7 @@ let%expect_test _ =
      (type_and_shape ((element_type Int64) (dimensions (42 1337))))) |}]
 
 let%expect_test _ =
-  let env = Env.create "foo" in
-  let session_options = Session_options.create () in
-  let session = Session.create env session_options ~model_path:"add_one.onnx" in
+  let session = Env.create_session ~model_path:"add_one.onnx" () in
   let s =
     Session_with_args.create session ~input_names:[ "input" ] ~output_names:[ "output" ]
   in
@@ -82,13 +78,13 @@ let%expect_test _ =
   let env = Env.create "foo" in
   let session_options = Session_options.create () in
   let session = Session.create env session_options ~model_path:"add_one.onnx" in
-  let metadata = Onnx.Metadata.of_session session in
+  let metadata = Metadata.of_session session in
   Stdio.print_s
     [%message
       ""
         (Session.inputs session : Input_output_info.t list)
         (Session.outputs session : Input_output_info.t list)
-        (metadata : Onnx.Metadata.t)];
+        (metadata : Metadata.t)];
   [%expect
     {|
     (("Session.inputs session"
