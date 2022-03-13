@@ -1,17 +1,18 @@
 open! Base
-module W = Onnx.Wrappers
+open! Onnx
+module W = Wrappers
 
 let%expect_test _ =
-  let env = W.Env.create "foo" in
-  let session_options = W.SessionOptions.create () in
-  let session = W.Session.create env session_options ~model_path:"add_one.onnx" in
+  let env = Env.create "foo" in
+  let session_options = Session_options.create () in
+  let session = Session.create env session_options ~model_path:"add_one.onnx" in
   Stdio.print_s
     [%message
       ""
-        ~in_cnt:(W.Session.input_count session : int)
-        ~out_cnt:(W.Session.output_count session : int)
-        ~in_names:(W.Session.input_names session : string list)
-        ~out_names:(W.Session.output_names session : string list)];
+        ~in_cnt:(Session.input_count session : int)
+        ~out_cnt:(Session.output_count session : int)
+        ~in_names:(Session.input_names session : string list)
+        ~out_names:(Session.output_names session : string list)];
   [%expect {|
     ((in_cnt 1) (out_cnt 1) (in_names (input)) (out_names (output))) |}];
   let run_model
@@ -22,16 +23,16 @@ let%expect_test _ =
     =
     let ba = Bigarray.Array1.create kind C_layout 1 in
     ba.{0} <- v;
-    let input_tensor = Bigarray.genarray_of_array1 ba |> W.Value.of_bigarray in
+    let input_tensor = Bigarray.genarray_of_array1 ba |> Value.of_bigarray in
     let tensor =
-      W.Session.run_1_1 session input_tensor ~input_name:"input" ~output_name:"output"
+      Session.run_1_1 session input_tensor ~input_name:"input" ~output_name:"output"
     in
-    let type_and_shape = W.Value.tensor_type_and_shape tensor in
-    let ba = W.Value.to_bigarray tensor kind |> Bigarray.array1_of_genarray in
+    let type_and_shape = Value.tensor_type_and_shape tensor in
+    let ba = Value.to_bigarray tensor kind |> Bigarray.array1_of_genarray in
     Stdio.print_s
       [%message
         ""
-          ~is_tensor:(W.Value.is_tensor tensor : bool)
+          ~is_tensor:(Value.is_tensor tensor : bool)
           ~element_count:(W.TensorTypeAndShapeInfo.element_count type_and_shape : int)
           ~dim_count:(W.TensorTypeAndShapeInfo.dimensions_count type_and_shape : int)
           ~dims:(W.TensorTypeAndShapeInfo.dimensions type_and_shape : int array)
@@ -45,12 +46,12 @@ let%expect_test _ =
      4.1415929794311523) |}]
 
 let%expect_test _ =
-  let tensor = W.Value.create_tensor Int64 ~shape:[| 42; 1337 |] in
-  let type_and_shape = W.Value.tensor_type_and_shape tensor in
+  let tensor = Value.create_tensor Int64 ~shape:[| 42; 1337 |] in
+  let type_and_shape = Value.tensor_type_and_shape tensor in
   Stdio.print_s
     [%message
       ""
-        ~is_tensor:(W.Value.is_tensor tensor : bool)
+        ~is_tensor:(Value.is_tensor tensor : bool)
         ~element_count:(W.TensorTypeAndShapeInfo.element_count type_and_shape : int)
         ~dim_count:(W.TensorTypeAndShapeInfo.dimensions_count type_and_shape : int)
         ~dims:(W.TensorTypeAndShapeInfo.dimensions type_and_shape : int array)];
@@ -59,19 +60,19 @@ let%expect_test _ =
     ((is_tensor true) (element_count 56154) (dim_count 2) (dims (42 1337))) |}]
 
 let%expect_test _ =
-  let env = W.Env.create "foo" in
-  let session_options = W.SessionOptions.create () in
-  let session = W.Session.create env session_options ~model_path:"add_one.onnx" in
+  let env = Env.create "foo" in
+  let session_options = Session_options.create () in
+  let session = Session.create env session_options ~model_path:"add_one.onnx" in
   let s =
     W.SessionWithArgs.create session ~input_names:[ "input" ] ~output_names:[ "output" ]
   in
   let ba = Bigarray.Array1.create Float32 C_layout 1 in
   ba.{0} <- 2.71828182846;
-  let input_tensor = Bigarray.genarray_of_array1 ba |> W.Value.of_bigarray in
+  let input_tensor = Bigarray.genarray_of_array1 ba |> Value.of_bigarray in
   match W.SessionWithArgs.run s [| input_tensor |] with
   | [| tensor |] ->
     let ba =
-      W.Value.to_bigarray tensor Float32
+      Value.to_bigarray tensor Float32
       |> fun ba ->
       Bigarray.Genarray.change_layout ba Fortran_layout |> Bigarray.array1_of_genarray
     in
@@ -82,21 +83,21 @@ let%expect_test _ =
     Printf.failwithf "unexpected number of tensors from run %d" (Array.length array) ()
 
 let%expect_test _ =
-  let env = W.Env.create "foo" in
-  let session_options = W.SessionOptions.create () in
-  let session = W.Session.create env session_options ~model_path:"add_one.onnx" in
+  let env = Env.create "foo" in
+  let session_options = Session_options.create () in
+  let session = Session.create env session_options ~model_path:"add_one.onnx" in
   let metadata = Onnx.Metadata.of_session session in
   Stdio.print_s
     [%message
       ""
-        (W.Session.inputs session : W.InputOutputInfo.t list)
-        (W.Session.outputs session : W.InputOutputInfo.t list)
+        (Session.inputs session : Input_output_info.t list)
+        (Session.outputs session : Input_output_info.t list)
         (metadata : Onnx.Metadata.t)];
   [%expect
     {|
-    (("W.Session.inputs session"
+    (("Session.inputs session"
       (((name input) (element_type Float) (dimensions (1)))))
-     ("W.Session.outputs session"
+     ("Session.outputs session"
       (((name output) (element_type Float) (dimensions (1)))))
      (metadata
       ((description "") (domain "") (graph_description "")

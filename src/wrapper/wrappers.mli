@@ -44,17 +44,6 @@ module Value : sig
   val is_tensor : t -> bool
   val type_info : t -> TypeInfo.t
   val tensor_type_and_shape : t -> TensorTypeAndShapeInfo.t
-  val of_bigarray : (_, _, Bigarray.c_layout) Bigarray.Genarray.t -> t
-
-  val to_bigarray
-    :  t
-    -> ('a, 'b) Bigarray.kind
-    -> ('a, 'b, Bigarray.c_layout) Bigarray.Genarray.t
-
-  (* The [copy_from_...] functions do not check that the actual value type matches the
-     bigarray type. It might be a good idea to introduce a parameterized type for tensors
-     as a wrapper around [Value.t].
-  *)
   val copy_from_bigarray : t -> (_, _, Bigarray.c_layout) Bigarray.Genarray.t -> unit
   val copy_to_bigarray : t -> (_, _, Bigarray.c_layout) Bigarray.Genarray.t -> unit
 end
@@ -69,15 +58,6 @@ module SessionOptions : sig
   val set_intra_op_num_threads : t -> threads:int option -> unit
 end
 
-module InputOutputInfo : sig
-  type t =
-    { name : string
-    ; element_type : Element_type.t
-    ; dimensions : int array
-    }
-  [@@deriving sexp]
-end
-
 module Session : sig
   type t
 
@@ -90,8 +70,6 @@ module Session : sig
   val output_name : t -> int -> string
   val input_names : t -> string list
   val output_names : t -> string list
-  val inputs : t -> InputOutputInfo.t list
-  val outputs : t -> InputOutputInfo.t list
   val model_metadata : t -> ModelMetadata.t
   val run_1_1 : t -> Value.t -> input_name:string -> output_name:string -> Value.t
 end

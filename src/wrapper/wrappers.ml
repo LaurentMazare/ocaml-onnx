@@ -230,50 +230,6 @@ module Value = struct
       (Bigarray.Genarray.size_in_bytes ba |> Unsigned.Size_t.of_int)
     |> check_and_release_status;
     keep_alive ba
-
-  let of_bigarray (type a b) (ba : (b, a, Bigarray.c_layout) Bigarray.Genarray.t) =
-    let (element_type : Element_type.t) =
-      match Bigarray.Genarray.kind ba with
-      | Float32 -> Float
-      | Float64 -> Double
-      | Int8_signed -> Int8
-      | Int8_unsigned -> UInt8
-      | Int16_signed -> Int16
-      | Int16_unsigned -> UInt16
-      | Int32 -> Int32
-      | Int64 -> Int64
-      | _ -> Unknown
-    in
-    let t = create_tensor element_type ~shape:(Bigarray.Genarray.dims ba) in
-    copy_from_bigarray t ba;
-    t
-
-  let to_bigarray (type a b) t (kind : (a, b) Bigarray.kind) =
-    let tensor_type_and_shape = tensor_type_and_shape t in
-    let dims = TensorTypeAndShapeInfo.dimensions tensor_type_and_shape in
-    let (ba : (a, b, Bigarray.c_layout) Bigarray.Genarray.t) =
-      match kind, TensorTypeAndShapeInfo.element_type tensor_type_and_shape with
-      | Float32, Float -> Bigarray.Genarray.create kind C_layout dims
-      | Float64, Double -> Bigarray.Genarray.create kind C_layout dims
-      | Int64, Int64 -> Bigarray.Genarray.create kind C_layout dims
-      | Int32, Int32 -> Bigarray.Genarray.create kind C_layout dims
-      | _, et ->
-        Printf.failwithf
-          "unsupported element type or type mismatch, tensor type %s"
-          (Element_type.to_string et)
-          ()
-    in
-    copy_to_bigarray t ba;
-    ba
-end
-
-module InputOutputInfo = struct
-  type t =
-    { name : string
-    ; element_type : Element_type.t
-    ; dimensions : int array
-    }
-  [@@deriving sexp]
 end
 
 module Session = struct
@@ -332,22 +288,6 @@ module Session = struct
   let output_name t idx = get_name t idx ~fn:W.Session.output_name
   let input_names t = List.init (input_count t) ~f:(input_name t)
   let output_names t = List.init (output_count t) ~f:(output_name t)
-
-  let inputs t =
-    List.init (input_count t) ~f:(fun i ->
-        let tensor_info = input_type_info t i |> TypeInfo.cast_to_tensor_info in
-        { InputOutputInfo.name = input_name t i
-        ; element_type = TensorTypeAndShapeInfo.element_type tensor_info
-        ; dimensions = TensorTypeAndShapeInfo.dimensions tensor_info
-        })
-
-  let outputs t =
-    List.init (output_count t) ~f:(fun i ->
-        let tensor_info = output_type_info t i |> TypeInfo.cast_to_tensor_info in
-        { InputOutputInfo.name = output_name t i
-        ; element_type = TensorTypeAndShapeInfo.element_type tensor_info
-        ; dimensions = TensorTypeAndShapeInfo.dimensions tensor_info
-        })
 end
 
 module SessionWithArgs = struct
