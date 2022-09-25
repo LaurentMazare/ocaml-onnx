@@ -2,7 +2,10 @@ open! Base
 open! Import
 module CArray = Ctypes.CArray
 
-let add_compact = false
+let add_compact =
+  match Sys.getenv "OCAML_ONNX_ADD_COMPACT" with
+  | None | Some "false" | Some "0" -> false
+  | Some _ -> true
 
 let check_and_release_status status =
   if not (Ctypes.is_null status)
@@ -10,6 +13,29 @@ let check_and_release_status status =
     let error_message = W.Status.error_message status in
     W.Status.release status;
     failwith error_message)
+
+let get_string t ~on_null ~on_some ~fn =
+  let ptr = Ctypes.(allocate_n (ptr char) ~count:1) in
+  if add_compact then Caml.Gc.compact ();
+  fn t ptr |> check_and_release_status;
+  let ptr = Ctypes.( !@ ) ptr in
+  if Ctypes.is_null ptr
+  then on_null ()
+  else (
+    let rec loop acc ptr =
+      let chr = Ctypes.( !@ ) ptr in
+      if Char.to_int chr = 0 then acc else loop (chr :: acc) (Ctypes.( +@ ) ptr 1)
+    in
+    let name = loop [] ptr |> List.rev |> String.of_char_list in
+    W.default_allocator_free (Ctypes.to_voidp ptr) |> check_and_release_status;
+    on_some name)
+
+let get_name t idx ~fn =
+  get_string
+    t
+    ~on_some:Fn.id
+    ~on_null:(fun () -> Printf.failwithf "returned null %d" idx ())
+    ~fn:(fun t ptr -> fn t idx ptr)
 
 module type S = sig
   type t
@@ -36,10 +62,85 @@ module Env = struct
   let create name = create (module W.Env) (fun ptr -> W.Env.create name ptr)
 end
 
+module ModelMetadata = struct
+  type t = W.ModelMetadata.t
+
+  let lookup_custom_map t key =
+    get_string
+      t
+      ~fn:(fun t -> W.ModelMetadata.lookup_custom_map t key)
+      ~on_null:(fun () -> None)
+      ~on_some:Option.some
+
+  let custom_map_keys t =
+    let ptr = Ctypes.(allocate_n (ptr (ptr char)) ~count:1) in
+    let size_ptr = Ctypes.(allocate_n int64_t ~count:1) in
+    if add_compact then Caml.Gc.compact ();
+    W.ModelMetadata.custom_map_keys t ptr size_ptr |> check_and_release_status;
+    let ptr = Ctypes.( !@ ) ptr in
+    let size_ptr = Ctypes.( !@ ) size_ptr in
+    if Ctypes.is_null ptr
+    then None
+    else (
+      let rec loop acc ptr =
+        let chr = Ctypes.( !@ ) ptr in
+        if Char.to_int chr = 0 then acc else loop (chr :: acc) (Ctypes.( +@ ) ptr 1)
+      in
+      let names =
+        List.init (Int64.to_int_exn size_ptr) ~f:(fun i ->
+            let ptr = Ctypes.( !@ ) (Ctypes.( +@ ) ptr i) in
+            let name = loop [] ptr |> List.rev |> String.of_char_list in
+            W.default_allocator_free (Ctypes.to_voidp ptr) |> check_and_release_status;
+            name)
+      in
+      W.default_allocator_free (Ctypes.to_voidp ptr) |> check_and_release_status;
+      Some names)
+
+  let get_string =
+    get_string ~on_null:(fun () -> failwith "c function returned null") ~on_some:Fn.id
+
+  let description t = get_string t ~fn:W.ModelMetadata.description
+  let domain t = get_string t ~fn:W.ModelMetadata.domain
+  let producer_name t = get_string t ~fn:W.ModelMetadata.producer_name
+  let graph_description t = get_string t ~fn:W.ModelMetadata.graph_description
+  let graph_name t = get_string t ~fn:W.ModelMetadata.graph_name
+
+  let version t =
+    let ptr = Ctypes.(allocate_n int64_t ~count:1) in
+    W.ModelMetadata.version t ptr |> check_and_release_status;
+    if Ctypes.is_null ptr then failwith "version returned null";
+    Ctypes.( !@ ) ptr
+end
+
 module SessionOptions = struct
   type t = W.SessionOptions.t
 
   let create () = create (module W.SessionOptions) W.SessionOptions.create
+
+  let set_inter_op_num_threads t ~threads =
+    W.SessionOptions.set_inter_op_num_threads t (Option.value threads ~default:0)
+    |> check_and_release_status;
+    keep_alive t
+
+  let set_intra_op_num_threads t ~threads =
+    W.SessionOptions.set_intra_op_num_threads t (Option.value threads ~default:0)
+    |> check_and_release_status;
+    keep_alive t
+end
+
+module TypeInfo = struct
+  type t = W.TypeInfo.t
+
+  let cast_to_tensor_info t =
+    let arr = CArray.make W.TensorTypeAndShapeInfo.t 1 in
+    if add_compact then Caml.Gc.compact ();
+    W.TypeInfo.cast_to_tensor_info t (CArray.start arr) |> check_and_release_status;
+    let tensor_info = CArray.get arr 0 in
+    if Ctypes.is_null t then failwith "function returned null despite ok status";
+    (* When not null, [tensor_info] should not be freed and will be valid until [t] is
+       released. *)
+    Caml.Gc.finalise (fun _ -> keep_alive t) tensor_info;
+    tensor_info
 end
 
 module TensorTypeAndShapeInfo = struct
@@ -99,7 +200,9 @@ module Value = struct
     W.Value.is_tensor t (CArray.start int_arr1) |> check_and_release_status;
     CArray.get int_arr1 0 <> 0
 
-  let tensor_type_and_shape t =
+  let type_info t = create (module W.TypeInfo) (fun ptr -> W.Value.type_info t ptr)
+
+  let tensor_type_and_shape_ t =
     create
       (module W.TensorTypeAndShapeInfo)
       (fun ptr -> W.Value.tensor_type_and_shape t ptr)
@@ -127,50 +230,40 @@ module Value = struct
       (Bigarray.Genarray.size_in_bytes ba |> Unsigned.Size_t.of_int)
     |> check_and_release_status;
     keep_alive ba
-
-  let of_bigarray (type a b) (ba : (b, a, Bigarray.c_layout) Bigarray.Genarray.t) =
-    let (element_type : Element_type.t) =
-      match Bigarray.Genarray.kind ba with
-      | Float32 -> Float
-      | Float64 -> Double
-      | Int8_signed -> Int8
-      | Int8_unsigned -> UInt8
-      | Int16_signed -> Int16
-      | Int16_unsigned -> UInt16
-      | Int32 -> Int32
-      | Int64 -> Int64
-      | _ -> Unknown
-    in
-    let t = create_tensor element_type ~shape:(Bigarray.Genarray.dims ba) in
-    copy_from_bigarray t ba;
-    t
-
-  let to_bigarray (type a b) t (kind : (a, b) Bigarray.kind) =
-    let tensor_type_and_shape = tensor_type_and_shape t in
-    let dims = TensorTypeAndShapeInfo.dimensions tensor_type_and_shape in
-    let (ba : (a, b, Bigarray.c_layout) Bigarray.Genarray.t) =
-      match kind, TensorTypeAndShapeInfo.element_type tensor_type_and_shape with
-      | Float32, Float -> Bigarray.Genarray.create kind C_layout dims
-      | Float64, Double -> Bigarray.Genarray.create kind C_layout dims
-      | Int64, Int64 -> Bigarray.Genarray.create kind C_layout dims
-      | Int32, Int32 -> Bigarray.Genarray.create kind C_layout dims
-      | _, et ->
-        Printf.failwithf
-          "unsupported element type or type mismatch, tensor type %s"
-          (Element_type.to_string et)
-          ()
-    in
-    copy_to_bigarray t ba;
-    ba
 end
 
 module Session = struct
   type t = W.Session.t
 
+  let model_metadata t =
+    let model_metadata =
+      create (module W.ModelMetadata) (fun ptr -> W.Session.model_metadata t ptr)
+    in
+    keep_alive t;
+    model_metadata
+
+  let input_type_info t idx =
+    let type_info =
+      create (module W.TypeInfo) (fun ptr -> W.Session.input_type_info t idx ptr)
+    in
+    keep_alive t;
+    type_info
+
+  let output_type_info t idx =
+    let type_info =
+      create (module W.TypeInfo) (fun ptr -> W.Session.output_type_info t idx ptr)
+    in
+    keep_alive t;
+    type_info
+
   let run_1_1 t input_value ~input_name ~output_name =
-    create
-      (module W.Value)
-      (fun ptr -> W.Session.run_1_1 t input_name output_name input_value ptr)
+    let output_value =
+      create
+        (module W.Value)
+        (fun ptr -> W.Session.run_1_1 t input_name output_name input_value ptr)
+    in
+    keep_alive (t, input_value);
+    output_value
 
   let create env session_options ~model_path =
     let t =
@@ -191,6 +284,10 @@ module Session = struct
 
   let input_count t = count t ~count_fn:W.Session.input_count
   let output_count t = count t ~count_fn:W.Session.output_count
+  let input_name t idx = get_name t idx ~fn:W.Session.input_name
+  let output_name t idx = get_name t idx ~fn:W.Session.output_name
+  let input_names t = List.init (input_count t) ~f:(input_name t)
+  let output_names t = List.init (output_count t) ~f:(output_name t)
 end
 
 module SessionWithArgs = struct
@@ -256,7 +353,11 @@ module SessionWithArgs = struct
       CArray.set t.input_values i (Ctypes.null |> Ctypes.from_voidp W.Value.struct_)
     done;
     check_and_release_status status;
-    keep_alive t;
+    (* The elements in [input_values] need to be kept alive as [CArray.set] unwraps the
+       fat pointer so a GC taking place just before [W.Session.run] would have a chance
+       to collect/run the finalizer on the input values if they are not referred to
+       after the call to [run]. *)
+    keep_alive (t, input_values);
     Array.init (CArray.length t.output_values) ~f:(fun i ->
         let output_value = CArray.get t.output_values i in
         CArray.set t.output_values i (Ctypes.null |> Ctypes.from_voidp W.Value.struct_);

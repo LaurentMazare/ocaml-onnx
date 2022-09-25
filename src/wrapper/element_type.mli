@@ -17,6 +17,7 @@ type t =
   | Complex128
   | BFloat16
   | Unknown
+[@@deriving sexp]
 
 val of_c_int : int -> t
 val to_c_int : t -> int

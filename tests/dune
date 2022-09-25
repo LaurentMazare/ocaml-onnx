@@ -1,5 +1,5 @@
 (library
  (name onnx_tests)
  (inline_tests (deps add_one.onnx))
- (libraries base onnx stdio)
- (preprocess (pps ppx_expect)))
+ (libraries base onnx sexplib stdio)
+ (preprocess (pps ppx_expect ppx_sexp_conv ppx_sexp_message)))

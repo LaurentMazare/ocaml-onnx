@@ -16,9 +16,19 @@ void release_status(OrtStatus *status) {
   current_ort()->ReleaseStatus(status);
 }
 
+// strdup might not be defined, use this instead.
+// https://stackoverflow.com/questions/3599160/how-can-i-suppress-unused-parameter-warnings-in-c
+char *dupstr(const char *s) {
+    char *const result = malloc(strlen(s) + 1);
+    if (result) {
+        strcpy(result, s);
+    }
+    return result;
+}
+
 char *status_get_error_message(OrtStatus *status) {
   const char* _msg = current_ort()->GetErrorMessage(status);
-  return strdup(_msg);
+  return dupstr(_msg);
 }
 
 void release_env(OrtEnv *env) {
@@ -37,8 +47,16 @@ void release_value(OrtValue *value) {
   current_ort()->ReleaseValue(value);
 }
 
+void release_type_info(OrtTypeInfo *t) {
+  current_ort()->ReleaseTypeInfo(t);
+}
+
 void release_tensor_type_and_shape_info(OrtTensorTypeAndShapeInfo *v) {
   current_ort()->ReleaseTensorTypeAndShapeInfo(v);
+}
+
+void release_model_metadata(OrtModelMetadata *v) {
+  current_ort()->ReleaseModelMetadata(v);
 }
 
 OrtStatus* create_env(char *name, OrtEnv **env) {
@@ -59,6 +77,10 @@ OrtStatus* session_get_input_count(OrtSession *session, size_t *value) {
 
 OrtStatus* session_get_output_count(OrtSession *session, size_t *value) {
   return current_ort()->SessionGetOutputCount(session, value);
+}
+
+OrtStatus* value_get_type_info(OrtValue *value, OrtTypeInfo **ptr) {
+  return current_ort()->GetTypeInfo(value, ptr);
 }
 
 OrtStatus* value_is_tensor(OrtValue *value, int *is_tensor) {
@@ -237,18 +259,194 @@ OrtStatus* session_run(OrtSession *s, char **inames, int iname_len, char **oname
   return status;
 }
 
+size_t element_size(ONNXTensorElementDataType type_) {
+  switch (type_) {
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED:
+      return 0;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+      return 4;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8:
+      return 1;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8:
+      return 1;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16:
+      return 2;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16:
+      return 2;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
+      return 4;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
+      return 8;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING:
+      return 0;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_BOOL:
+      return 0;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT16:
+      return 2;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE:
+      return 8;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32:
+      return 4;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64:
+      return 8;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX64:
+      return 8;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_COMPLEX128:
+      return 16;
+    case ONNX_TENSOR_ELEMENT_DATA_TYPE_BFLOAT16:
+      return 2;
+  }
+  return 0;
+}
+
+OrtStatus* check_data_len(OrtValue *v, size_t data_len) {
+  const OrtApi *g_ort = current_ort();
+  OrtTensorTypeAndShapeInfo* info;
+  OrtStatus *status = g_ort->GetTensorTypeAndShape(v, &info);
+  if (status) return status;
+  size_t element_count;
+  status = g_ort->GetTensorShapeElementCount(info, &element_count);
+  if (status) {
+    g_ort->ReleaseTensorTypeAndShapeInfo(info);
+    return status;
+  }
+  ONNXTensorElementDataType element_type;
+  status = g_ort->GetTensorElementType(info, &element_type);
+  g_ort->ReleaseTensorTypeAndShapeInfo(info);
+  if (status) return status;
+  if (data_len > element_size(element_type) * element_count) {
+    return g_ort->CreateStatus(ORT_FAIL, "size to copy is too large");
+  }
+  return NULL;
+}
+
 OrtStatus* value_tensor_memcpy_to_ptr(OrtValue *v, void *data, size_t data_len) {
+  OrtStatus* status = check_data_len(v, data_len);
+  if (status) return status;
+
   void* tensor_data;
-  OrtStatus *status = current_ort()->GetTensorMutableData(v, &tensor_data);
+  status = current_ort()->GetTensorMutableData(v, &tensor_data);
   if (status) return status;
   memcpy(data, tensor_data, data_len);
   return NULL;
 }
 
 OrtStatus* value_tensor_memcpy_of_ptr(OrtValue *v, void *data, size_t data_len) {
+  OrtStatus* status = check_data_len(v, data_len);
+  if (status) return status;
+
   void* tensor_data;
-  OrtStatus *status = current_ort()->GetTensorMutableData(v, &tensor_data);
+  status = current_ort()->GetTensorMutableData(v, &tensor_data);
   if (status) return status;
   memcpy(tensor_data, data, data_len);
   return NULL;
+}
+
+OrtStatus *session_get_input_name(OrtSession *s, int index, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->SessionGetInputName(s, index, allocator, ptr);
+}
+
+OrtStatus *session_get_output_name(OrtSession *s, int index, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->SessionGetOutputName(s, index, allocator, ptr);
+}
+
+OrtStatus *session_get_model_metadata(OrtSession *s, OrtModelMetadata **ptr) {
+  return current_ort()->SessionGetModelMetadata(s, ptr);
+}
+
+OrtStatus *session_get_input_type_info(OrtSession *s, int index, OrtTypeInfo **ptr) {
+  return current_ort()->SessionGetInputTypeInfo(s, index, ptr);
+}
+
+OrtStatus *session_get_output_type_info(OrtSession *s, int index, OrtTypeInfo **ptr) {
+  return current_ort()->SessionGetOutputTypeInfo(s, index, ptr);
+}
+
+OrtStatus *default_allocator_free(void *ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->AllocatorFree(allocator, ptr);
+}
+
+OrtStatus* cast_type_info_to_tensor_info(OrtTypeInfo* t, OrtTensorTypeAndShapeInfo** ptr) {
+  return current_ort()->CastTypeInfoToTensorInfo(t, (const 	OrtTensorTypeAndShapeInfo **)ptr);
+}
+
+OrtStatus *model_metadata_get_custom_metadata_map_keys(OrtModelMetadata *s, char ***ptr, int64_t *nkeys) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetCustomMetadataMapKeys(s, allocator, ptr, nkeys);
+}
+
+OrtStatus *model_metadata_lookup_custom_metadata_map(OrtModelMetadata *s, char *key, char **value) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataLookupCustomMetadataMap(s, allocator, key, value);
+}
+
+OrtStatus *model_metadata_get_description(OrtModelMetadata *s, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetDescription(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_domain(OrtModelMetadata *s, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetDomain(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_graph_description(OrtModelMetadata *s, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetGraphDescription(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_graph_name(OrtModelMetadata *s, char ** ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetGraphName(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_producer_name(OrtModelMetadata *s, char **ptr) {
+  const OrtApi *g_ort = current_ort();
+  OrtAllocator* allocator;
+  OrtStatus *status = g_ort->GetAllocatorWithDefaultOptions(&allocator);
+  if (status) return status;
+  return g_ort->ModelMetadataGetProducerName(s, allocator, ptr);
+}
+
+OrtStatus *model_metadata_get_version(OrtModelMetadata *s, int64_t *ptr) {
+  const OrtApi *g_ort = current_ort();
+  return g_ort->ModelMetadataGetVersion(s, ptr);
+}
+
+OrtStatus* session_options_set_inter_op_num_threads(OrtSessionOptions *s, int n) {
+  return current_ort()->SetInterOpNumThreads(s, n);
+}
+
+OrtStatus* session_options_set_intra_op_num_threads(OrtSessionOptions *s, int n) {
+  return current_ort()->SetIntraOpNumThreads(s, n);
 }

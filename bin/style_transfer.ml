@@ -4,13 +4,13 @@
    https://raw.githubusercontent.com/microsoft/Windows-Machine-Learning/master/Samples/FNSCandyStyleTransfer/UWP/cs/Assets/candy.onnx
 *)
 open! Base
-module W = Onnx.Wrappers
+open! Onnx
 
 let () =
   match Sys.get_argv () with
   | [| _bin; model_path; input_path; output_path |] ->
-    let env = W.Env.create "ocaml-env" in
-    let s = W.Session.create env (W.SessionOptions.create ()) ~model_path in
+    let env = Env.create "ocaml-env" in
+    let s = Session.create env (Session_options.create ()) ~model_path in
     let in_tensor =
       Onnx_image_helper.Image.load_image
         ~resize:(720, 720)
@@ -21,7 +21,7 @@ let () =
       |> Or_error.ok_exn
     in
     let out_tensor =
-      W.Session.run_1_1 s in_tensor ~input_name:"inputImage" ~output_name:"outputImage"
+      Session.run_1_1 s in_tensor ~input_name:"inputImage" ~output_name:"outputImage"
     in
     Onnx_image_helper.Image.write_image
       ~max_value:256.

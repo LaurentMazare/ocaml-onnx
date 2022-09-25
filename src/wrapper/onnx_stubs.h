@@ -14,8 +14,16 @@ OrtStatus *create_tensor_as_ort_value(int64_t *, size_t, int, OrtValue **);
 char *status_get_error_message(OrtStatus *);
 OrtStatus* session_get_input_count(OrtSession *, size_t *);
 OrtStatus* session_get_output_count(OrtSession *, size_t *);
+OrtStatus *session_get_input_name(OrtSession *, int, char **);
+OrtStatus *session_get_output_name(OrtSession *, int, char **);
+OrtStatus *session_get_input_type_info(OrtSession *, int, OrtTypeInfo **);
+OrtStatus *session_get_output_type_info(OrtSession *, int, OrtTypeInfo **);
+OrtStatus *session_get_model_metadata(OrtSession *, OrtModelMetadata **);
 OrtStatus* session_run_1_1(OrtSession *, char *, char *, OrtValue*, OrtValue **);
 OrtStatus* session_run(OrtSession *, char **, int, char **, int, OrtValue **, OrtValue **);
+OrtStatus* session_options_set_inter_op_num_threads(OrtSessionOptions *, int);
+OrtStatus* session_options_set_intra_op_num_threads(OrtSessionOptions *, int);
+OrtStatus* value_get_type_info(OrtValue *, OrtTypeInfo **);
 OrtStatus* value_is_tensor(OrtValue *, int *);
 OrtStatus* value_get_tensor_type_and_shape(OrtValue *, OrtTensorTypeAndShapeInfo **);
 OrtStatus* value_tensor_memcpy_of_ptr(OrtValue *, void *, size_t);
@@ -25,11 +33,26 @@ OrtStatus* tensor_type_and_shape_info_dimensions(OrtTensorTypeAndShapeInfo *, in
 OrtStatus* tensor_type_and_shape_info_get_dimensions(OrtTensorTypeAndShapeInfo *, int64_t *, size_t);
 OrtStatus* tensor_type_and_shape_info_get_tensor_element_type(OrtTensorTypeAndShapeInfo *, int *);
 OrtStatus* tensor_type_and_shape_info_get_tensor_shape_element_count(OrtTensorTypeAndShapeInfo *, size_t *);
+OrtStatus* cast_type_info_to_tensor_info(OrtTypeInfo*, OrtTensorTypeAndShapeInfo**);
+
+
+OrtStatus *model_metadata_get_custom_metadata_map_keys(OrtModelMetadata *, char ***, int64_t *);
+OrtStatus *model_metadata_lookup_custom_metadata_map(OrtModelMetadata *, char *, char **);
+OrtStatus *model_metadata_get_description(OrtModelMetadata *, char **);
+OrtStatus *model_metadata_get_domain(OrtModelMetadata *, char **);
+OrtStatus *model_metadata_get_graph_description(OrtModelMetadata *, char **);
+OrtStatus *model_metadata_get_graph_name(OrtModelMetadata *, char **);
+OrtStatus *model_metadata_get_producer_name(OrtModelMetadata *, char **);
+OrtStatus *model_metadata_get_version(OrtModelMetadata *, int64_t *);
+
+OrtStatus *default_allocator_free(void*);
 
 void release_status(OrtStatus *);
 void release_env(OrtEnv *);
 void release_session(OrtSession *);
 void release_session_options(OrtSessionOptions *);
 void release_value(OrtValue *);
+void release_type_info(OrtTypeInfo *);
 void release_tensor_type_and_shape_info(OrtTensorTypeAndShapeInfo *);
+void release_model_metadata(OrtModelMetadata *);
 #endif

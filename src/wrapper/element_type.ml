@@ -17,6 +17,7 @@ type t =
   | Complex128
   | BFloat16
   | Unknown
+[@@deriving sexp]
 
 let of_c_int = function
   | 0 -> Undefined
