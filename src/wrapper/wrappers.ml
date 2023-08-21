@@ -349,7 +349,7 @@ module SessionWithArgs = struct
         (CArray.start t.input_values)
         (CArray.start t.output_values)
     in
-    for i = 0 to CArray.length t.output_values - 1 do
+    for i = 0 to CArray.length t.input_values - 1 do
       CArray.set t.input_values i (Ctypes.null |> Ctypes.from_voidp W.Value.struct_)
     done;
     check_and_release_status status;
